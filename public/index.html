@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MangaBaka - Reading Profile API</title>
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0b1622 0%, #1a2332 100%);
+            color: #edf1f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            color: #3db4f2;
+            margin-bottom: 1rem;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            color: #8ba0b2;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .card {
+            background: #0b1622;
+            border: 2px solid #112233;
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .endpoint {
+            background: #1a2332;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            color: #3db4f2;
+            margin: 1rem 0;
+            word-break: break-all;
+        }
+        
+        .badge-preview {
+            margin: 2rem 0;
+        }
+        
+        .badge-preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .usage {
+            text-align: left;
+            background: #1a2332;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .usage h3 {
+            color: #3db4f2;
+            margin-bottom: 1rem;
+        }
+        
+        .usage code {
+            background: #0b1622;
+            padding: 0.5rem;
+            border-radius: 4px;
+            display: block;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+            color: #edf1f5;
+        }
+        
+        a {
+            color: #3db4f2;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        a:hover {
+            color: #5dc4ff;
+        }
+        
+        footer {
+            margin-top: 3rem;
+            color: #8ba0b2;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 MangaBaka Reading Profile</h1>
+        <p>
+            Display your MangaBaka reading statistics with a beautiful SVG badge.
+            Perfect for GitHub profiles, personal websites, and more!
+        </p>
+        
+        <div class="card">
+            <h2 style="color: #3db4f2; margin-bottom: 1rem;">API Endpoint</h2>
+            <div class="endpoint">
+                https://your-deployment-url.vercel.app/api
+            </div>
+        </div>
+        
+        <div class="badge-preview">
+            <h2 style="color: #3db4f2; margin-bottom: 1rem;">Badge Preview</h2>
+            <img src="/api" alt="MangaBaka Reading Profile Badge" />
+        </div>
+        
+        <div class="usage">
+            <h3>Usage in Markdown</h3>
+            <code>![MangaBaka Stats](https://your-deployment-url.vercel.app/api)</code>
+            
+            <h3 style="margin-top: 1.5rem;">Usage in HTML</h3>
+            <code>&lt;img src="https://your-deployment-url.vercel.app/api" alt="MangaBaka Stats" /&gt;</code>
+        </div>
+        
+        <footer>
+            <p>Powered by <a href="https://mangabaka.org" target="_blank">MangaBaka</a> | Hosted on <a href="https://vercel.com" target="_blank">Vercel</a></p>
+        </footer>
+    </div>
+</body>
+</html>
