@@ -12,22 +12,18 @@ export default async function handler(req, res) {
     });
 
     if (!dataResponse.ok) throw new Error('MangaBaka API denied access');
-    const payload = await dataResponse.json();
+    const stats = await dataResponse.json();
 
-    // 1. Unnest the object safely if MangaBaka wraps it inside a "data" property
-    const stats = payload.data ? payload.data : payload;
-
-    // 2. Map snake_case or camelCase variables to extract values safely
+    // Direct mapping checks for both common variations
     let rawCompletion = stats.completion_rate !== undefined ? stats.completion_rate : stats.completionRate;
     let rawFinished = stats.finished_rate !== undefined ? stats.finished_rate : stats.finishedRate;
     let rawRereads = stats.total_rereads !== undefined ? stats.total_rereads : stats.totalRereads;
 
-    // 3. Fallback gracefully to your profile averages if data is missing or pending sync
+    // Apply values or fall back to your profile defaults
     const completionRate = rawCompletion !== undefined ? `${rawCompletion}%` : "36.8%";
     const finishedRate = rawFinished !== undefined ? `${rawFinished}%` : "66.7%";
     const totalRereads = rawRereads !== undefined ? rawRereads : "1";
 
-    // 4. Generate the AniList dark-mode themed SVG block
     const svg = `
     <svg width="450" height="120" viewBox="0 0 450 120" fill="none" xmlns="http://w3.org">
       <style>
@@ -51,15 +47,13 @@ export default async function handler(req, res) {
     </svg>
     `;
 
-    // 5. Apply cache-busting headers
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'max-age=0, no-cache, no-store, must-revalidate');
-    
     res.status(200).send(svg);
 
   } catch (error) {
-    // Helpful debug display to instantly show you what broke during execution
+    // Fixed string interpretation error layout
     res.setHeader('Content-Type', 'image/svg+xml');
-    res.status(200).send(\`<svg xmlns="http://w3.org" width="450" height="120"><rect width="450" height="120" fill="#0b1622" rx="10"/><text x="20" y="55" fill="#ff4d4d" font-family="sans-serif" font-weight="bold">Execution Error</text><text x="20" y="80" fill="#8ba0b2" font-family="sans-serif" font-size="11">\${error.message}</text></svg>\`);
+    res.status(200).send('<svg xmlns="http://w3.org" width="450" height="120"><rect width="450" height="120" fill="#0b1622" rx="10"/><text x="20" y="65" fill="#ff4d4d" font-family="sans-serif" font-weight="bold">Processing Error</text></svg>');
   }
 }
