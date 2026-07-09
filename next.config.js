@@ -1,17 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'api.mangaupdates.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.mangaupdates.com',
-      },
-    ],
-  },
+  output: 'export',
+  distDir: 'dist',
 };
 
 module.exports = nextConfig;

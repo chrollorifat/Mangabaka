@@ -1,21 +1,42 @@
-# MangaUpdates Stats Card
+# MangaBaka Stats Card
 
-A dynamic image card that displays your MangaUpdates reading stats, deployable on Vercel and embeddable in your Anilist bio.
+A dynamic SVG stats card for your MangaBaka library, deployable on Vercel and embeddable in AniList profiles.
+
+## Deploy to Vercel
+
+1. **Fork/clone this repo**
+2. **Set environment variable** in Vercel:
+   - `MANGABAKA_API_KEY` = your MangaBaka API key
+3. **Deploy**
+
+## Usage in AniList Bio
+
+After deploying, your card will be available at:
+```
+https://your-project.vercel.app/api/card
+```
+
+Add this to your AniList bio:
+```markdown
+![MangaBaka Stats](https://your-project.vercel.app/api/card)
+```
 
 ## Features
 
-- 📊 Shows total manga, chapters, and volumes
-- 📈 Status breakdown (Reading, Completed, On Hold, Dropped, Plan to Read)
-- 🏷️ Top 3 genres
--  Beautiful dark theme with glassmorphism
--  Auto-updates every hour via Vercel caching
-- 🔗 Works as a simple image URL in any Markdown bio
+- Total library entries
+- Chapters & volumes read
+- Average rating
+- Status distribution (Reading, Completed, Paused, Dropped, Plan to Read)
+- Media type breakdown (Manga, Manhwa, Manhua, Novel)
+- Top 5 genres & tags
+- Auto-updates every 5 minutes
 
-## Setup
+## API
 
-### 1. Clone & Install
+| Endpoint | Description |
+|----------|-------------|
+| `/api/card` | Returns SVG image with your stats |
 
-```bash
-git clone <your-repo>
-cd mangabaka-stats-card
-npm install
+## Cache
+
+The card is cached for 5 minutes (`max-age=300`) to avoid rate limiting.
