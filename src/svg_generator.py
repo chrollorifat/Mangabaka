@@ -18,6 +18,7 @@ Key Design Principles:
 from typing import List, Dict, Any
 from dataclasses import dataclass
 import math
+from src.stats_processor import LibraryStats
 
 
 @dataclass(frozen=True)
@@ -111,10 +112,14 @@ def _donut_svg(cx: int, cy: int, radius: int, status: Dict[str, int]) -> str:
     return "\n".join(parts)
 
 
-def generate_svg(stats: Dict[str, Any]) -> str:
+def generate_svg(stats: LibraryStats, username: str) -> str:
     """
     Generate complete SVG card with dynamic height.
     
+    Args:
+        stats: LibraryStats dataclass containing all computed statistics
+        username: User's display name
+        
     Layout rows (calculated to prevent overlap):
     1. Header (user + donut): 140px
     2. Primary stats (4 cards): 100px  
@@ -122,6 +127,26 @@ def generate_svg(stats: Dict[str, Any]) -> str:
     4. Heatmap: 60px
     5. Top picks: 100px
     """
+    
+    # Convert dataclass to dict for easier access
+    stats_dict = {
+        'username': username,
+        'total_entries': stats.total,
+        'chapters_read': stats.chapters,
+        'volumes_read': stats.volumes,
+        'mean_score': stats.avg_rating,
+        'reread_count': stats.rereads,
+        'status_distribution': {
+            'reading': stats.reading,
+            'completed': stats.completed,
+            'planned': stats.plan_to_read,
+            'dropped': stats.dropped,
+        },
+        'avg_chapters_per_day': stats.avg_chapters_per_day,
+        'activity_last_7_days': stats.activity_last_7_days,
+        'top_rated_manga': stats.top_rated_manga,
+        'top_rated_anime': stats.top_rated_anime,
+    }
     
     # Row heights for dynamic layout
     ROWS = {
@@ -184,27 +209,26 @@ def generate_svg(stats: Dict[str, Any]) -> str:
     # === ROW 1: Header (User Info + Donut) ===
     # Avatar
     svg.append(f'<circle cx="55" cy="{y+40}" r="28" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="2"/>')
-    initial = stats.get('username', '?')[0].upper()
+    initial = username[0].upper() if username else '?'
     svg.append(f'<text x="55" y="{y+48}" text-anchor="middle" font-size="22" font-weight="bold" fill="#38bdf8">{initial}</text>')
     
     # Username & Total
-    username = _truncate(stats.get('username', 'User'), 18)
-    total_entries = _format_num(stats.get('total_entries', 0))
-    svg.append(f'<text x="95" y="{y+32}" font-size="16" font-weight="bold" fill="#f8fafc">@{username}</text>')
+    username_truncated = _truncate(username, 18)
+    total_entries = _format_num(stats.total)
+    svg.append(f'<text x="95" y="{y+32}" font-size="16" font-weight="bold" fill="#f8fafc">@{username_truncated}</text>')
     svg.append(f'<text x="95" y="{y+55}" font-size="12" fill="#94a3b8">Total Entries: <tspan fill="#38bdf8" font-weight="bold">{total_entries}</tspan></text>')
     
     # Donut chart (right side)
-    status_dist = stats.get('status_distribution', {})
-    svg.append(_donut_svg(CANVAS_WIDTH-90, y+50, 35, status_dist))
+    svg.append(_donut_svg(CANVAS_WIDTH-90, y+50, 35, stats_dict['status_distribution']))
     
     y += ROWS['header'] + GRID_GAP
     
     # === ROW 2: Primary Stats (4 cards) ===
     primary = [
-        {'lbl': 'CHAPTERS', 'val': stats.get('chapters_read', 0), 'color': Colors.accent_blue},
-        {'lbl': 'VOLUMES', 'val': stats.get('volumes_read', 0), 'color': Colors.accent_purple},
-        {'lbl': 'AVG SCORE', 'val': stats.get('mean_score', 0), 'suffix': '/10', 'color': Colors.warning},
-        {'lbl': 'REREADS', 'val': stats.get('reread_count', 0), 'color': Colors.success},
+        {'lbl': 'CHAPTERS', 'val': stats.chapters, 'color': Colors.accent_blue},
+        {'lbl': 'VOLUMES', 'val': stats.volumes, 'color': Colors.accent_purple},
+        {'lbl': 'AVG SCORE', 'val': stats.avg_rating, 'suffix': '/10', 'color': Colors.warning},
+        {'lbl': 'REREADS', 'val': stats.rereads, 'color': Colors.success},
     ]
     
     card_w = (CANVAS_WIDTH - PADDING*2 - GRID_GAP*3) // 4
@@ -220,16 +244,16 @@ def generate_svg(stats: Dict[str, Any]) -> str:
     y += ROWS['primary'] + GRID_GAP
     
     # === ROW 3: Secondary Stats (Rates & Averages) ===
-    total_ent = max(stats.get('total_entries', 1), 1)
-    completed = stats.get('status_distribution', {}).get('completed', 0)
-    dropped = stats.get('status_distribution', {}).get('dropped', 0)
+    total_ent = max(stats.total, 1)
+    completed = stats.completed
+    dropped = stats.dropped
     
-    completion_rate = (completed / total_ent) * 100
-    success_rate = (completed / max(completed + dropped, 1)) * 100
-    avg_chap_day = stats.get('avg_chapters_per_day', 0)
+    completion_rate = (completed / total_ent) * 100 if total_ent > 0 else 0
+    success_rate = (completed / max(completed + dropped, 1)) * 100 if (completed + dropped) > 0 else 0
+    avg_chap_day = stats.avg_chapters_per_day
     
     secondary = [
-        {'lbl': 'COMPLETION RATE', 'val': f"{completion_rate:.1f}%", 'sub': f"{completed}/{int(total_ent)}", 'color': Colors.accent_blue},
+        {'lbl': 'COMPLETION RATE', 'val': f"{completion_rate:.1f}%", 'sub': f"{completed}/{stats.total}", 'color': Colors.accent_blue},
         {'lbl': 'SUCCESS RATIO', 'val': f"{success_rate:.1f}%", 'sub': 'Completed vs Dropped', 'color': Colors.success},
         {'lbl': 'AVG CHAPS/DAY', 'val': f"{avg_chap_day:.2f}", 'sub': 'Last 30 Days', 'color': Colors.warning},
     ]
@@ -246,22 +270,22 @@ def generate_svg(stats: Dict[str, Any]) -> str:
     y += ROWS['secondary'] + GRID_GAP
     
     # === ROW 4: 7-Day Activity Heatmap ===
-    activity = stats.get('activity_last_7_days', [0]*7)
+    activity = stats.activity_last_7_days
     svg.append(f'<text x="{PADDING}" y="{y}" class="title">ACTIVITY (LAST 7 DAYS)</text>')
     svg.append(_heatmap_svg(activity, PADDING, y+12))
     
     y += ROWS['heatmap'] + GRID_GAP
     
     # === ROW 5: Top Picks (Manga & Anime) ===
-    top_manga = stats.get('top_rated_manga', [])
-    top_anime = stats.get('top_rated_anime', [])
+    top_manga = stats.top_rated_manga
+    top_anime = stats.top_rated_anime
     
     svg.append(f'<text x="{PADDING}" y="{y}" class="title">HIGHEST RATED</text>')
     
     py = y + 20
     col_w = (CANVAS_WIDTH - PADDING*2 - GRID_GAP) // 2
     
-    def render_picks(items: List[Dict], x_off: int, title: str) -> str:
+    def render_picks(items: list, x_off: int, title: str) -> str:
         if not items:
             return f'<text x="{x_off}" y="{py+18}" class="label">No data</text>'
         
