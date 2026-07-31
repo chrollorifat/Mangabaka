@@ -1,7 +1,9 @@
 ```
-# Compiled Python files
+# Compiled and build artifacts
 *.pyc
 __pycache__/
+dist/
+build/
 
 # Dependencies
 .venv/
