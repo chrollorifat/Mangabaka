@@ -1,48 +1,12 @@
 ```
-# Dependencies
-node_modules/
+# Compressed files
+*.zip
+
+# Environment variables
+.env
 
 # Build artifacts
-build/
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Editors
-.vscode/
-.idea/
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# MyPy
-.mypy_cache/
-
-# PyTest
-.pytest_cache/
-
-# Distribution / packaging
-.dist/
-.egg/
-.eggs/
-.installed.cfg
-.pyproject.toml
+*.d.ts
+next.config.js
+tsconfig.json
 ```
