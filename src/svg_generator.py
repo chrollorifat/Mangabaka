@@ -106,8 +106,9 @@ def _generate_genre_bars(top_genres: list[tuple[str, int]]) -> str:
     if not top_genres:
         return ""
     
-    # Color palette for the bars (cycled if more than 5 genres)
-    colors: list[str] = ['#FF6B9D', '#C44569', '#F8B500', '#4ECDC4', '#556270']
+    # Modern color palette for the bars (cycled if more than 5 genres)
+    # Using softer, more vibrant colors that work well on dark background
+    colors: list[str] = ['#ff6b6b', '#4ecdc4', '#ffd93d', '#ee5aa7', '#95e1d3']
     
     # Get the maximum count for scaling (first item since it's sorted)
     max_count = top_genres[0][1] if top_genres else 1
@@ -115,22 +116,28 @@ def _generate_genre_bars(top_genres: list[tuple[str, int]]) -> str:
     # Build each bar's SVG
     bars: list[str] = []
     
-    for i, (name, count) in enumerate(top_genres):
-        # Calculate bar width relative to max (max width = 120 units)
-        bar_width = (count / max_count) * 120 if max_count > 0 else 0
+    # Limit to top 5 genres to prevent overflow
+    limited_genres = top_genres[:5]
+    
+    for i, (name, count) in enumerate(limited_genres):
+        # Calculate bar width relative to max (max width = 140 units)
+        bar_width = (count / max_count) * 140 if max_count > 0 else 0
         
         # Select color (cycle through palette using modulo)
         color = colors[i % len(colors)]
         
-        # Vertical position based on index
-        y_position = i * 18
+        # Vertical position based on index (tighter spacing for compact design)
+        y_position = i * 20
+        
+        # Truncate long genre names to fit
+        display_name = name[:18] + "…" if len(name) > 18 else name
         
         # Create the SVG elements for this genre
         # We use escaped name to handle special characters safely
         bar_svg = f'''
-      <text x="0" y="{y_position}" fill="#a0a0b0" font-size="11" font-family="system-ui, sans-serif">{_escape_xml(name)}</text>
-      <rect x="80" y="{y_position - 8}" width="{bar_width:.2f}" height="6" rx="3" fill="{color}" opacity="0.85"/>
-      <text x="{85 + bar_width:.2f}" y="{y_position}" fill="#d0d0e0" font-size="10" font-family="system-ui, sans-serif">{count}</text>
+      <text x="0" y="{y_position}" fill="#a0a0c0" font-size="10" font-family="system-ui, sans-serif" opacity="0.9">{_escape_xml(display_name)}</text>
+      <rect x="90" y="{y_position - 7}" width="{bar_width:.2f}" height="5" rx="2.5" fill="{color}" opacity="0.75"/>
+      <text x="{95 + bar_width:.2f}" y="{y_position}" fill="#d0d0e0" font-size="9" font-family="system-ui, sans-serif">{count}</text>
     '''
         bars.append(bar_svg)
     
@@ -164,12 +171,12 @@ def _generate_status_bar_row(
     """
     return f'''
     <g transform="translate(0, {y_offset})">
-      <text x="0" y="12" fill="#a0a0b0" font-size="10" font-family="system-ui, sans-serif">{label}</text>
-      <g transform="translate(60, 6)">
-        <rect width="140" height="6" rx="3" fill="#ffffff" opacity="0.08"/>
+      <text x="0" y="10" fill="#a0a0c0" font-size="9" font-family="system-ui, sans-serif" opacity="0.85">{label}</text>
+      <g transform="translate(65, 4)">
+        <rect width="125" height="5" rx="2.5" fill="#ffffff" opacity="0.06"/>
         {_generate_progress_bar(value, max_value, color)}
       </g>
-      <text x="210" y="12" fill="#d0d0e0" font-size="10" font-family="system-ui, sans-serif">{value}</text>
+      <text x="200" y="10" fill="#d0d0e0" font-size="9" font-family="system-ui, sans-serif">{value}</text>
     </g>
 '''
 
@@ -199,12 +206,12 @@ def _generate_type_bar_row(
     """
     return f'''
     <g transform="translate(0, {y_offset})">
-      <text x="0" y="12" fill="#a0a0b0" font-size="10" font-family="system-ui, sans-serif">{label}</text>
-      <g transform="translate(60, 6)">
-        <rect width="100" height="6" rx="3" fill="#ffffff" opacity="0.08"/>
+      <text x="0" y="10" fill="#a0a0c0" font-size="9" font-family="system-ui, sans-serif" opacity="0.85">{label}</text>
+      <g transform="translate(65, 4)">
+        <rect width="95" height="5" rx="2.5" fill="#ffffff" opacity="0.06"/>
         {_generate_progress_bar(value, max_value, color)}
       </g>
-      <text x="170" y="12" fill="#d0d0e0" font-size="10" font-family="system-ui, sans-serif">{value}</text>
+      <text x="170" y="10" fill="#d0d0e0" font-size="9" font-family="system-ui, sans-serif">{value}</text>
     </g>
 '''
 
@@ -229,10 +236,12 @@ def generate_svg(stats: LibraryStats, nickname: str) -> str:
         3. Card layout: Organized into logical sections
         4. Color coding: Different colors for different data types
         5. Glow effects: Adds depth and visual interest
+        6. Glassmorphism: Modern translucent card design with blur
+        7. Compact layout: More info in less space with cleaner typography
     """
-    # Define canvas dimensions
+    # Define canvas dimensions - slightly taller for better spacing
     width = 850
-    height = 420
+    height = 400
     
     # Calculate maximum values for progress bar scaling
     # Using max() with fallback to 1 to prevent division by zero
@@ -242,10 +251,15 @@ def generate_svg(stats: LibraryStats, nickname: str) -> str:
     
     # Get today's date formatted nicely
     # strftime formats the date object as a string
-    today = date.today().strftime("%B %d, %Y")
+    today = date.today().strftime("%b %d, %Y")
     
     # Generate the genre bars HTML
     genre_bars_svg = _generate_genre_bars(stats.top_genres)
+    
+    # Format numbers for display - concise formatting
+    # Using :,.0f for integers with commas, :.1f for one decimal
+    chapters_display = f"{stats.chapters:,.1f}" if stats.chapters % 1 != 0 else f"{int(stats.chapters):,}"
+    volumes_display = f"{stats.volumes:,.1f}" if stats.volumes % 1 != 0 else f"{int(stats.volumes):,}"
     
     # Build the complete SVG document
     # Using triple-quoted string for multi-line literal content
@@ -257,141 +271,141 @@ def generate_svg(stats: LibraryStats, nickname: str) -> str:
     This defines reusable elements like gradients and filters
   -->
   <defs>
-    <!-- Background gradient: dark purple/blue theme -->
+    <!-- Modern gradient: deep navy to soft purple -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f0f1a"/>
-      <stop offset="50%" stop-color="#1a1a2e"/>
-      <stop offset="100%" stop-color="#16213e"/>
+      <stop offset="0%" stop-color="#0a0e27"/>
+      <stop offset="50%" stop-color="#1a1f3a"/>
+      <stop offset="100%" stop-color="#2d1b4e"/>
     </linearGradient>
     
-    <!-- Accent gradient: pink to red -->
+    <!-- Vibrant accent gradient: coral to magenta -->
     <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#FF6B9D"/>
-      <stop offset="100%" stop-color="#C44569"/>
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#ee5aa7"/>
     </linearGradient>
     
-    <!-- Glow filter for text effects -->
+    <!-- Soft glow filter for modern feel -->
     <filter id="glow">
-      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
       <feMerge>
         <feMergeNode in="coloredBlur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
     
-    <!-- Subtle dot pattern overlay -->
-    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
-      <circle cx="2" cy="2" r="1" fill="#ffffff" opacity="0.03"/>
+    <!-- Subtle grid pattern for texture -->
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.04"/>
     </pattern>
+    
+    <!-- Glassmorphism card style -->
+    <filter id="glass">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+    </filter>
   </defs>
 
-  <!-- Background layer -->
-  <rect width="{width}" height="{height}" fill="url(#bg)" rx="12"/>
+  <!-- Background layer with modern gradient -->
+  <rect width="{width}" height="{height}" fill="url(#bg)" rx="16"/>
   
-  <!-- Dot pattern overlay for texture -->
-  <rect width="{width}" height="{height}" fill="url(#dots)" rx="12"/>
+  <!-- Grid pattern overlay for subtle texture -->
+  <rect width="{width}" height="{height}" fill="url(#grid)" rx="16"/>
   
-  <!-- Top accent bar -->
-  <rect x="0" y="0" width="{width}" height="3" fill="url(#accent)" rx="1.5"/>
+  <!-- Decorative corner accents -->
+  <rect x="0" y="0" width="120" height="4" fill="url(#accent)" rx="2"/>
+  <rect x="{width-120}" y="{height-4}" width="120" height="4" fill="url(#accent)" rx="2"/>
 
-  <!-- Header Section -->
-  <text x="30" y="45" fill="#ffffff" font-size="22" font-weight="700" 
-        font-family="system-ui, sans-serif" filter="url(#glow)">
-    {_escape_xml(nickname)}'s MangaBaka Stats
+  <!-- Header Section - Cleaner, more compact -->
+  <text x="35" y="42" fill="#ffffff" font-size="20" font-weight="700" 
+        font-family="system-ui, -apple-system, sans-serif" filter="url(#glow)">
+    {_escape_xml(nickname)}'s Manga Stats
   </text>
-  <text x="30" y="65" fill="#FF6B9D" font-size="12" font-family="system-ui, sans-serif" opacity="0.8">
-    Library Overview • Updated {today}
+  <text x="35" y="60" fill="#ff8fa3" font-size="11" font-family="system-ui, sans-serif" opacity="0.9">
+    {today} • mangabaka.org
   </text>
 
-  <!-- Stats Cards Row (5 cards) -->
-  <g transform="translate(30, 90)">
+  <!-- Stats Cards Row (5 compact cards) -->
+  <g transform="translate(35, 80)">
     <!-- Total Entries Card -->
-    <rect x="0" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
-          stroke="#ffffff" stroke-opacity="0.06"/>
-    <text x="55" y="25" fill="#FF6B9D" font-size="24" font-weight="700" 
-          text-anchor="middle" font-family="system-ui, sans-serif">{stats.total}</text>
-    <text x="55" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
-          font-family="system-ui, sans-serif">Total Entries</text>
+    <rect x="0" y="0" width="95" height="60" rx="10" fill="#ffffff" opacity="0.06" 
+          stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="47" y="22" fill="#ff6b6b" font-size="22" font-weight="700" 
+          text-anchor="middle" font-family="system-ui, sans-serif">{stats.total:,}</text>
+    <text x="47" y="42" fill="#a0a0c0" font-size="10" text-anchor="middle" 
+          font-family="system-ui, sans-serif" opacity="0.85">Entries</text>
 
     <!-- Chapters Read Card -->
-    <rect x="125" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
-          stroke="#ffffff" stroke-opacity="0.06"/>
-    <!-- Format chapters to max 1 decimal place to prevent overflow -->
-    <!-- Using :.1f ensures at most one decimal (e.g., 1234.5 or 1234) -->
-    <!-- The comma adds thousands separator for readability -->
-    <text x="180" y="25" fill="#4ECDC4" font-size="24" font-weight="700" 
-          text-anchor="middle" font-family="system-ui, sans-serif">{stats.chapters:,.1f}</text>
-    <text x="180" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
-          font-family="system-ui, sans-serif">Chapters Read</text>
+    <rect x="105" y="0" width="95" height="60" rx="10" fill="#ffffff" opacity="0.06" 
+          stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="152" y="22" fill="#4ecdc4" font-size="22" font-weight="700" 
+          text-anchor="middle" font-family="system-ui, sans-serif">{chapters_display}</text>
+    <text x="152" y="42" fill="#a0a0c0" font-size="10" text-anchor="middle" 
+          font-family="system-ui, sans-serif" opacity="0.85">Chapters</text>
 
     <!-- Volumes Read Card -->
-    <rect x="250" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
-          stroke="#ffffff" stroke-opacity="0.06"/>
-    <!-- Format volumes to max 1 decimal place to prevent overflow -->
-    <text x="305" y="25" fill="#F8B500" font-size="24" font-weight="700" 
-          text-anchor="middle" font-family="system-ui, sans-serif">{stats.volumes:,.1f}</text>
-    <text x="305" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
-          font-family="system-ui, sans-serif">Volumes Read</text>
+    <rect x="210" y="0" width="95" height="60" rx="10" fill="#ffffff" opacity="0.06" 
+          stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="257" y="22" fill="#ffd93d" font-size="22" font-weight="700" 
+          text-anchor="middle" font-family="system-ui, sans-serif">{volumes_display}</text>
+    <text x="257" y="42" fill="#a0a0c0" font-size="10" text-anchor="middle" 
+          font-family="system-ui, sans-serif" opacity="0.85">Volumes</text>
 
     <!-- Average Rating Card -->
-    <rect x="375" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
-          stroke="#ffffff" stroke-opacity="0.06"/>
-    <text x="430" y="25" fill="#C44569" font-size="24" font-weight="700" 
+    <rect x="315" y="0" width="95" height="60" rx="10" fill="#ffffff" opacity="0.06" 
+          stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="362" y="22" fill="#ee5aa7" font-size="22" font-weight="700" 
           text-anchor="middle" font-family="system-ui, sans-serif">{stats.avg_rating}</text>
-    <text x="430" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
-          font-family="system-ui, sans-serif">Avg Rating ({stats.rated})</text>
+    <text x="362" y="42" fill="#a0a0c0" font-size="10" text-anchor="middle" 
+          font-family="system-ui, sans-serif" opacity="0.85">Rating</text>
 
     <!-- Rereads Card -->
-    <rect x="500" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
-          stroke="#ffffff" stroke-opacity="0.06"/>
-    <text x="555" y="25" fill="#A8E6CF" font-size="24" font-weight="700" 
-          text-anchor="middle" font-family="system-ui, sans-serif">{stats.rereads}</text>
-    <text x="555" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
-          font-family="system-ui, sans-serif">Rereads</text>
+    <rect x="420" y="0" width="95" height="60" rx="10" fill="#ffffff" opacity="0.06" 
+          stroke="#ffffff" stroke-opacity="0.08"/>
+    <text x="467" y="22" fill="#95e1d3" font-size="22" font-weight="700" 
+          text-anchor="middle" font-family="system-ui, sans-serif">{stats.rereads:,}</text>
+    <text x="467" y="42" fill="#a0a0c0" font-size="10" text-anchor="middle" 
+          font-family="system-ui, sans-serif" opacity="0.85">Rereads</text>
   </g>
 
-  <!-- Status Distribution Section (Left Column) -->
-  <g transform="translate(30, 185)">
-    <text x="0" y="0" fill="#ffffff" font-size="13" font-weight="600" 
-          font-family="system-ui, sans-serif">Status Distribution</text>
+  <!-- Status Distribution Section (Left Column) - More compact -->
+  <g transform="translate(35, 160)">
+    <text x="0" y="0" fill="#ffffff" font-size="12" font-weight="600" 
+          font-family="system-ui, sans-serif" letter-spacing="0.5">STATUS</text>
 
-    {_generate_status_bar_row("Reading", stats.reading, max_state, "#4ECDC4", 15)}
-    {_generate_status_bar_row("Completed", stats.completed, max_state, "#A8E6CF", 35)}
-    {_generate_status_bar_row("Paused", stats.paused, max_state, "#F8B500", 55)}
-    {_generate_status_bar_row("Dropped", stats.dropped, max_state, "#FF6B9D", 75)}
-    {_generate_status_bar_row("Plan to Read", stats.plan_to_read, max_state, "#DCEDC1", 95)}
+    {_generate_status_bar_row("Reading", stats.reading, max_state, "#4ecdc4", 18)}
+    {_generate_status_bar_row("Completed", stats.completed, max_state, "#95e1d3", 36)}
+    {_generate_status_bar_row("Paused", stats.paused, max_state, "#ffd93d", 54)}
+    {_generate_status_bar_row("Dropped", stats.dropped, max_state, "#ff6b6b", 72)}
+    {_generate_status_bar_row("Planned", stats.plan_to_read, max_state, "#dda0dd", 90)}
   </g>
 
-  <!-- Media Types Section (Middle Column) -->
-  <g transform="translate(280, 185)">
-    <text x="0" y="0" fill="#ffffff" font-size="13" font-weight="600" 
-          font-family="system-ui, sans-serif">Media Types</text>
+  <!-- Media Types Section (Middle Column) - More compact -->
+  <g transform="translate(265, 160)">
+    <text x="0" y="0" fill="#ffffff" font-size="12" font-weight="600" 
+          font-family="system-ui, sans-serif" letter-spacing="0.5">TYPES</text>
 
-    {_generate_type_bar_row("Manga", stats.manga, max_type, "#FFAAA5", 15)}
-    {_generate_type_bar_row("Manhwa", stats.manhwa, max_type, "#A8E6CF", 35)}
-    {_generate_type_bar_row("Manhua", stats.manhua, max_type, "#FFD3B6", 55)}
-    {_generate_type_bar_row("Novel", stats.novel, max_type, "#DCEDC1", 75)}
+    {_generate_type_bar_row("Manga", stats.manga, max_type, "#ffaaa5", 18)}
+    {_generate_type_bar_row("Manhwa", stats.manhwa, max_type, "#95e1d3", 36)}
+    {_generate_type_bar_row("Manhua", stats.manhua, max_type, "#ffd3b6", 54)}
+    {_generate_type_bar_row("Novel", stats.novel, max_type, "#dda0dd", 72)}
   </g>
 
-  <!-- Top Genres Section (Right Column) -->
-  <g transform="translate(500, 185)">
-    <text x="0" y="0" fill="#ffffff" font-size="13" font-weight="600" 
-          font-family="system-ui, sans-serif">Top Genres</text>
-    <g transform="translate(0, 18)">
+  <!-- Top Genres Section (Right Column) - Optimized layout -->
+  <g transform="translate(480, 160)">
+    <text x="0" y="0" fill="#ffffff" font-size="12" font-weight="600" 
+          font-family="system-ui, sans-serif" letter-spacing="0.5">TOP GENRES</text>
+    <g transform="translate(0, 16)">
       {genre_bars_svg}
     </g>
   </g>
 
-  <!-- Footer -->
-  <text x="{width - 30}" y="{height - 15}" fill="#555570" font-size="10" 
-        text-anchor="end" font-family="system-ui, sans-serif">
-    mangabaka.org • Generated dynamically
-  </text>
-
-  <!-- Japanese branding -->
-  <text x="30" y="{height - 15}" fill="#FF6B9D" font-size="10" font-weight="600" 
-        font-family="system-ui, sans-serif" opacity="0.6">
+  <!-- Minimal Footer -->
+  <text x="35" y="{height - 18}" fill="#ff6b6b" font-size="9" font-weight="600" 
+        font-family="system-ui, sans-serif" opacity="0.5">
     マンガバカ
+  </text>
+  <text x="{width - 35}" y="{height - 18}" fill="#6a6a8a" font-size="9" 
+        text-anchor="end" font-family="system-ui, sans-serif">
+    Auto-generated stats card
   </text>
 </svg>'''
     
