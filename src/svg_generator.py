@@ -172,7 +172,7 @@ def generate_svg(stats: LibraryStats, username: str) -> str:
         
         <!-- Username -->
         <text x="{PADDING+75}" y="105" font-size="24" font-weight="600" fill="{Colors.text_primary}">@{username}</text>
-        <text x="{PADDING+75}" y="130" font-size="16" fill="{Colors.text_secondary}">Total Entries: {stats.total_entries:,}</text>
+        <text x="{PADDING+75}" y="130" font-size="16" fill="{Colors.text_secondary}">Total Entries: {stats.total:,}</text>
         
         <!-- Mini Donut Chart (Right Side) -->
         <g transform="translate({WIDTH-PADDING-100}, 40)">
@@ -201,20 +201,15 @@ def generate_svg(stats: LibraryStats, username: str) -> str:
         </g>
         '''
     
-    chapters = _fmt_num(stats.chapters_read)
-    volumes = _fmt_num(stats.volumes_read)
-    score = f"{stats.avg_score:.1f}" if stats.avg_score else "N/A"
-    rereads = f"{stats.rereads:,}"
-    
-    svg.append(stat_card("CHAPTERS READ", chapters, 0))
-    svg.append(stat_card("VOLUMES READ", volumes, 1))
-    svg.append(stat_card("AVG SCORE", score, 2))
-    svg.append(stat_card("REREADS", rereads, 3))
+    svg.append(stat_card("CHAPTERS READ", _fmt_num(stats.chapters), 0))
+    svg.append(stat_card("VOLUMES READ", _fmt_num(stats.volumes), 1))
+    svg.append(stat_card("AVG SCORE", f"{stats.avg_rating:.1f}/10", 2))
+    svg.append(stat_card("REREADS", str(stats.rereads), 3))
     
     y = 160 + 120  # Move to next row
     
     # === ROW 3: TOP GENRES (Bar Chart) ===
-    top_genres = sorted(stats.genres.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_genres = stats.top_genres[:5]  # Already sorted in processor
     max_count = top_genres[0][1] if top_genres else 1
     bar_h = 24
     bar_gap = 12
@@ -246,11 +241,11 @@ def generate_svg(stats: LibraryStats, username: str) -> str:
     
     # === ROW 4: READING STATUS (Progress Bars) ===
     status_data = [
-        ("Reading", stats.status_counts.get('Reading', 0), Colors.status_reading),
-        ("Completed", stats.status_counts.get('Completed', 0), Colors.status_completed),
-        ("Plan to Read", stats.status_counts.get('Plan to Read', 0), Colors.status_plan),
-        ("Dropped", stats.status_counts.get('Dropped', 0), Colors.status_dropped),
-        ("Paused", stats.status_counts.get('Paused', 0), Colors.status_paused),
+        ("Reading", stats.reading, Colors.status_reading),
+        ("Completed", stats.completed, Colors.status_completed),
+        ("Plan to Read", stats.plan_to_read, Colors.status_plan),
+        ("Dropped", stats.dropped, Colors.status_dropped),
+        ("Paused", stats.paused, Colors.status_paused),
     ]
     
     total_status = sum(s[1] for s in status_data) or 1
@@ -258,20 +253,6 @@ def generate_svg(stats: LibraryStats, username: str) -> str:
     row_gap_status = 28
     max_bar_w_status = WIDTH - PADDING*2 - 200
     
-    status_rows = []
-    for label, count, color in status_data:
-        pct = (count / total_status) * 100
-        bar_w = (pct / 100) * max_bar_w_status
-        
-        status_rows.append(f'''
-        <g transform="translate({PADDING}, {status_rows.__len__() * row_gap_status if status_rows else 0})">
-            <text x="0" y="12" class="bar-label" width="120">{label}</text>
-            <rect x="130" y="4" width="{bar_w}" height="{bar_h_status}" rx="5" fill="{color}"/>
-            <text x="{130 + bar_w + 8}" y="13" class="bar-value">{count} ({pct:.1f}%)</text>
-        </g>
-        ''')
-    
-    # Re-calculate Y positions properly
     status_svg_parts = []
     for i, (label, count, color) in enumerate(status_data):
         pct = (count / total_status) * 100
@@ -299,12 +280,12 @@ def generate_svg(stats: LibraryStats, username: str) -> str:
     metric_w = 340
     metric_h = 80
     
-    comp_rate = stats.completion_rate
-    succ_rate = stats.success_ratio
+    comp_rate = (stats.completed / stats.total * 100) if stats.total > 0 else 0
+    succ_rate = (stats.completed / (stats.completed + stats.dropped) * 100) if (stats.completed + stats.dropped) > 0 else 0
     avg_chaps = f"{stats.avg_chapters_per_day:.2f}" if stats.avg_chapters_per_day else "0.00"
     
     metrics = [
-        ("COMPLETION RATE", f"{comp_rate:.1f}%", f"{stats.status_counts.get('Completed', 0)}/{stats.total_entries}"),
+        ("COMPLETION RATE", f"{comp_rate:.1f}%", f"{stats.completed}/{stats.total}"),
         ("SUCCESS RATIO", f"{succ_rate:.1f}%", "Completed vs Dropped"),
         ("AVG CHAPS/DAY", avg_chaps, "Last 30 Days"),
     ]
