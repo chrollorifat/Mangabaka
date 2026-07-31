@@ -2,19 +2,22 @@
   "name": "mangabaka-stats-card",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
+  "description": "Generate a dynamic SVG stats card for your MangaBaka library",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "build": "node build.js",
+    "generate": "node build.js"
   },
-  "dependencies": {
-    "next": "14.2.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "^20.14.10",
-    "@types/react": "^18.3.3",
-    "typescript": "^5.5.3"
-  }
+  "keywords": [
+    "mangabaka",
+    "stats",
+    "card",
+    "svg",
+    "anime",
+    "manga"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
 }

@@ -1,6 +1,48 @@
+```
+# Dependencies
 node_modules/
+
+# Build artifacts
+build/
+
+# Environment
 .env
 .env.local
-.next/
-dist/
+*.env.*
+
+# Logs and temp files
 *.log
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# MyPy
+.mypy_cache/
+
+# PyTest
+.pytest_cache/
+
+# Distribution / packaging
+.dist/
+.egg/
+.eggs/
+.installed.cfg
+.pyproject.toml
+```
