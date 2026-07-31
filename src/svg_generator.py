@@ -339,7 +339,7 @@ def _generate_donut_chart(
                 stroke-dasharray="{dash_length:.2f} {gap_length:.2f}"
                 stroke-linecap="butt"
                 transform="rotate({rotation - 90} {center} {center})"
-                opacity="0.9"/>'
+                opacity="0.9"/>'''
         segments.append(segment)
         
         # Update cumulative percentage for next segment

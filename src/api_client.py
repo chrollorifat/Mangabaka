@@ -134,7 +134,8 @@ class MangaBakaClient:
             )
         except requests.exceptions.HTTPError as e:
             # HTTP error status (4xx, 5xx)
-            status_code = e.response.status_code if e.response else "unknown"
+            # Ensure status_code is an integer for comparison
+            status_code = e.response.status_code if e.response else 0
             
             if status_code == 401:
                 raise MangaBakaAPIError(
