@@ -1,6 +1,12 @@
-node_modules/
+```
+# Compressed files
+*.zip
+
+# Environment variables
 .env
-.env.local
-.next/
-dist/
-*.log
+
+# Build artifacts
+*.d.ts
+next.config.js
+tsconfig.json
+```

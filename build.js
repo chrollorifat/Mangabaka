@@ -1,60 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Build script to generate static SVG card for GitHub Pages deployment
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Configuration from environment variables
 const API_KEY = process.env.MANGABAKA_API_KEY || '';
 const BASE_URL = 'https://api.mangabaka.org';
 
-interface LibraryEntry {
-  state: string;
-  rating: number | null;
-  progress_chapter: number | null;
-  progress_volume: number | null;
-  is_private: boolean;
-  number_of_rereads: number | null;
-  Series?: {
-    type?: string;
-    content_rating?: string;
-    genres?: string[];
-    tags?: string[];
-    status?: string;
-    title?: string;
-    cover?: {
-      x150?: { x1?: string | null };
-    };
-  };
-}
-
-interface Stats {
-  total: number;
-  reading: number;
-  completed: number;
-  paused: number;
-  dropped: number;
-  plan_to_read: number;
-  rated: number;
-  avgRating: number;
-  chapters: number;
-  volumes: number;
-  rereads: number;
-  manga: number;
-  manhwa: number;
-  manhua: number;
-  novel: number;
-  safe: number;
-  suggestive: number;
-  erotica: number;
-  pornographic: number;
-  topGenres: [string, number][];
-  topTags: [string, number][];
-}
-
-async function fetchAllEntries(): Promise<LibraryEntry[]> {
-  const entries: LibraryEntry[] = [];
+/**
+ * Fetch all library entries from MangaBaka API
+ * @param {string} apiKey - MangaBaka API key
+ * @returns {Promise<Array>} Array of library entries
+ */
+async function fetchAllEntries(apiKey) {
+  const entries = [];
   let page = 1;
 
   while (true) {
     const resp = await fetch(`${BASE_URL}/v1/my/library?limit=100&page=${page}`, {
-      headers: { 'x-api-key': API_KEY },
-      next: { revalidate: 300 }
+      headers: { 'x-api-key': apiKey },
     });
 
     if (!resp.ok) break;
@@ -67,22 +33,27 @@ async function fetchAllEntries(): Promise<LibraryEntry[]> {
     const pagination = data.pagination || {};
     if (!pagination.next) break;
     page++;
-    if (page > 10) break;
+    if (page > 10) break; // Limit to 1000 entries max
   }
 
   return entries;
 }
 
-function computeStats(entries: LibraryEntry[]): Stats {
-  const states: Record<string, number> = {};
-  const ratings: number[] = [];
+/**
+ * Compute statistics from library entries
+ * @param {Array} entries - Library entries
+ * @returns {Object} Statistics object
+ */
+function computeStats(entries) {
+  const states = {};
+  const ratings = [];
   let chapters = 0;
   let volumes = 0;
   let rereads = 0;
-  const types: Record<string, number> = {};
-  const content: Record<string, number> = {};
-  const genres: Record<string, number> = {};
-  const tags: Record<string, number> = {};
+  const types = {};
+  const content = {};
+  const genres = {};
+  const tags = {};
 
   for (const e of entries) {
     states[e.state] = (states[e.state] || 0) + 1;
@@ -102,7 +73,7 @@ function computeStats(entries: LibraryEntry[]): Stats {
     ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
     : 0;
 
-  const sortEntries = (obj: Record<string, number>) =>
+  const sortEntries = (obj) =>
     Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   return {
@@ -130,20 +101,27 @@ function computeStats(entries: LibraryEntry[]): Stats {
   };
 }
 
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+/**
+ * Escape special XML characters
+ * @param {string} str - Input string
+ * @returns {string} Escaped string
+ */
+function escapeXml(str) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&apos;'
+  };
+  return str.replace(/[&<>"']/g, m => map[m]);
 }
 
-function generateSVG(stats: Stats, nickname: string): string {
+function generateSVG(stats, nickname) {
   const width = 850;
   const height = 420;
 
-  const bar = (val: number, max: number, color: string) => {
+  const bar = (val, max, color) => {
     const pct = max > 0 ? (val / max) * 100 : 0;
     return `<rect x="0" y="0" width="${pct}" height="6" rx="3" fill="${color}"/>`;
   };
@@ -316,11 +294,17 @@ function generateSVG(stats: Stats, nickname: string): string {
 </svg>`;
 }
 
-export async function GET(request: NextRequest) {
+async function main() {
+  if (!API_KEY) {
+    console.error('Error: MANGABAKA_API_KEY environment variable is not set');
+    console.error('Please set it in your GitHub repository secrets');
+    process.exit(1);
+  }
+
   try {
+    console.log('Fetching profile...');
     const profileResp = await fetch(`${BASE_URL}/v1/my/profile`, {
       headers: { 'x-api-key': API_KEY },
-      next: { revalidate: 300 }
     });
 
     let nickname = 'User';
@@ -329,20 +313,36 @@ export async function GET(request: NextRequest) {
       nickname = profile.data?.nickname || profile.data?.preferred_username || 'User';
     }
 
-    const entries = await fetchAllEntries();
+    console.log('Fetching library entries...');
+    const entries = await fetchAllEntries(API_KEY);
+    console.log(`Found ${entries.length} entries`);
+
+    console.log('Computing statistics...');
     const stats = computeStats(entries);
 
+    console.log('Generating SVG card...');
     const svg = generateSVG(stats, nickname);
 
-    return new NextResponse(svg, {
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    // Create output directory
+    const outDir = join(__dirname, 'dist');
+    if (!existsSync(outDir)) {
+      mkdirSync(outDir, { recursive: true });
+    }
+
+    // Write SVG file
+    const outputPath = join(outDir, 'card.svg');
+    writeFileSync(outputPath, svg, 'utf-8');
+    console.log(`Card generated successfully: ${outputPath}`);
+
+    // Also copy to root for easy access
+    const rootOutputPath = join(__dirname, 'card.svg');
+    writeFileSync(rootOutputPath, svg, 'utf-8');
+    console.log(`Card also copied to: ${rootOutputPath}`);
+
   } catch (error) {
     console.error('Error generating card:', error);
-    return new NextResponse('Error generating card', { status: 500 });
+    process.exit(1);
   }
 }
+
+main();
