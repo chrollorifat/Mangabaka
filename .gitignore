@@ -1,12 +1,18 @@
 ```
-# Compressed files
-*.zip
-
-# Environment variables
-.env
-
 # Build artifacts
-*.d.ts
-next.config.js
-tsconfig.json
+dist/
+*.svg
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+*.env.*
 ```
