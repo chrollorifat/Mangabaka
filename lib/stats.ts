@@ -1,8 +1,3 @@
-import { NextRequest } from 'next/server';
-
-const API_KEY = process.env.MANGABAKA_API_KEY || '';
-const BASE_URL = 'https://api.mangabaka.org';
-
 export interface LibraryEntry {
   state: string;
   rating: number | null;
@@ -51,7 +46,7 @@ export interface Stats {
  * Fetches all library entries from the MangaBaka API with pagination.
  * Implements early termination and page limit for performance.
  */
-export async function fetchAllEntries(): Promise<LibraryEntry[]> {
+export async function fetchAllEntries(apiKey: string, baseUrl: string): Promise<LibraryEntry[]> {
   const entries: LibraryEntry[] = [];
   let page = 1;
   const MAX_PAGES = 10;
@@ -59,10 +54,10 @@ export async function fetchAllEntries(): Promise<LibraryEntry[]> {
 
   while (page <= MAX_PAGES) {
     const resp = await fetch(
-      `${BASE_URL}/v1/my/library?limit=${PAGE_LIMIT}&page=${page}`,
+      `${baseUrl}/v1/my/library?limit=${PAGE_LIMIT}&page=${page}`,
       {
-        headers: { 'x-api-key': API_KEY },
-        cache: 'force-cache' as any,
+        headers: { 'x-api-key': apiKey },
+        cache: 'no-store',
       }
     );
 

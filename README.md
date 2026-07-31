@@ -2,7 +2,7 @@
 
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/mangabaka-stats-card&env=MANGABAKA_API_KEY)
 
-A dynamic SVG stats card for your MangaBaka library, deployable on Vercel and embeddable in AniList profiles. Generates beautiful, real-time statistics visualizations of your manga reading activity.
+A dynamic SVG stats card for your MangaBaka library, deployable on Vercel. Generates beautiful, real-time statistics visualizations of your manga reading activity that you can embed anywhere!
 
 ## ✨ Features
 
@@ -15,27 +15,107 @@ A dynamic SVG stats card for your MangaBaka library, deployable on Vercel and em
 - **Auto-updates** - Refreshes every 5 minutes to avoid API rate limiting
 - **Beautiful SVG Design** - Gradient backgrounds, glow effects, and smooth animations
 
-## 🚀 Quick Start
+## 🚀 Step-by-Step Deployment Guide
 
-### 1. Deploy to Vercel
+### Option 1: One-Click Deploy (Recommended)
 
-1. **Fork this repository** or clone it locally
-2. **Get your MangaBaka API Key** from your account settings
-3. **Set environment variable** in Vercel:
-   - `MANGABAKA_API_KEY` = your MangaBaka API key
-4. **Deploy** - Vercel will handle the rest!
+1. **Click the "Deploy to Vercel" button** at the top of this README
+2. **Connect your Git provider** (GitHub/GitLab/Bitbucket)
+3. **Configure your project**:
+   - Give your project a name (e.g., `mangabaka-stats`)
+   - Set the environment variable:
+     - Key: `MANGABAKA_API_KEY`
+     - Value: Your MangaBaka API key
+4. **Click "Deploy"**
+5. Wait ~2 minutes for deployment to complete
 
-### 2. Usage in AniList Bio
+### Option 2: Manual Deploy
 
-After deploying, your card will be available at:
+#### Step 1: Get Your MangaBaka API Key
+
+1. Go to [MangaBaka.org](https://mangabaka.org)
+2. Log in to your account
+3. Navigate to **Settings** → **API** or **Account Settings**
+4. Generate or copy your API key
+
+#### Step 2: Fork the Repository
+
+1. Click **Fork** on the GitHub repository page
+2. Clone your fork locally (optional):
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/mangabaka-stats-card.git
+   cd mangabaka-stats-card
+   ```
+
+#### Step 3: Deploy to Vercel
+
+1. Go to [Vercel.com](https://vercel.com) and sign in
+2. Click **"Add New Project"**
+3. Import your forked repository
+4. **Configure Build Settings**:
+   - Framework Preset: **Next.js** (auto-detected)
+   - Root Directory: `./` (default)
+   - Build Command: `next build` (default)
+   - Output Directory: `.next` (default)
+5. **Add Environment Variables**:
+   - Click **"Environment Variables"**
+   - Add: `MANGABAKA_API_KEY` = your_api_key_here
+6. Click **"Deploy"**
+
+#### Step 4: Verify Deployment
+
+1. Once deployed, Vercel will show your project URL (e.g., `https://mangabaka-stats.vercel.app`)
+2. Visit `https://your-project-url.vercel.app/api/card` to see your stats card
+3. If you see an SVG image with your stats, deployment was successful!
+
+### Option 3: Deploy via Vercel CLI
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Navigate to project directory
+cd mangabaka-stats-card
+
+# Deploy
+vercel --prod
+
+# Set environment variable
+vercel env add MANGABAKA_API_KEY your_api_key_here
 ```
-https://your-project.vercel.app/api/card
+
+## 📸 Using Your Stats Card
+
+After deployment, your card is available at:
+```
+https://your-project-name.vercel.app/api/card
 ```
 
-Add this to your AniList bio:
+### Embed in GitHub Profile README
+
 ```markdown
-![MangaBaka Stats](https://your-project.vercel.app/api/card)
+![My MangaBaka Stats](https://your-project-name.vercel.app/api/card)
 ```
+
+### Embed in Personal Website
+
+```html
+<img src="https://your-project-name.vercel.app/api/card" alt="My MangaBaka Stats" />
+```
+
+### Embed in Forum Signatures
+
+Copy the image URL directly:
+```
+https://your-project-name.vercel.app/api/card
+```
+
+### Share on Social Media
+
+The SVG format works great on Twitter, Discord, and most platforms that support images!
 
 ## 📊 API Reference
 
@@ -70,12 +150,18 @@ The card is cached for **5 minutes** (`max-age=300`) with a **stale-while-revali
 mangabaka-stats-card/
 ├── api/
 │   └── card/
-│       └── route.ts      # API endpoint handler
+│       └── route.ts      # API endpoint handler (Edge Runtime)
+├── app/
+│   ├── layout.tsx        # Root layout
+│   └── page.tsx          # Home page with usage instructions
 ├── lib/
 │   └── stats.ts          # Core statistics logic (refactored)
+├── types/
+│   └── next.d.ts         # TypeScript type extensions
 ├── package.json
 ├── next.config.js
 ├── tsconfig.json
+├── vercel.json           # Vercel configuration
 └── README.md
 ```
 
@@ -106,6 +192,9 @@ npm run build
 npm start
 ```
 
+Open [http://localhost:3000](http://localhost:3000) to see the landing page.
+Visit [http://localhost:3000/api/card](http://localhost:3000/api/card) to see your stats card.
+
 ## 🎨 Customization
 
 To customize the card appearance, edit the `generateSVG` function in `lib/stats.ts`:
@@ -119,12 +208,33 @@ To customize the card appearance, edit the `generateSVG` function in `lib/stats.
 
 This project includes several performance improvements:
 
-1. **Modular Architecture** - Separated concerns into reusable functions
-2. **Single-pass Statistics** - Computes all stats in one iteration
-3. **Efficient XML Escaping** - Uses lookup table for character replacement
-4. **Pagination Limits** - Caps API requests to prevent timeout
-5. **Early Termination** - Stops fetching when no more data
-6. **Caching Strategy** - Balances freshness with API rate limits
+1. **Edge Runtime** - Runs on Vercel Edge for faster global response times
+2. **Modular Architecture** - Separated concerns into reusable functions
+3. **Single-pass Statistics** - Computes all stats in one iteration
+4. **Efficient XML Escaping** - Uses lookup table for character replacement
+5. **Pagination Limits** - Caps API requests to prevent timeout
+6. **Early Termination** - Stops fetching when no more data
+7. **Caching Strategy** - Balances freshness with API rate limits
+
+## ❓ Troubleshooting
+
+### Card shows "Error generating card"
+
+1. Verify your `MANGABAKA_API_KEY` is set correctly in Vercel
+2. Check Vercel Function logs for error details
+3. Ensure your API key has proper permissions
+
+### Deployment fails on Vercel
+
+1. Make sure you're using Node.js 18+ runtime
+2. Check that `next.config.js` doesn't have incompatible settings
+3. Review Vercel build logs for specific errors
+
+### Card appears blank or shows default values
+
+1. Ensure your MangaBaka library has entries
+2. Verify the API key is valid and not expired
+3. Check browser console for CORS errors
 
 ## 🤝 Contributing
 

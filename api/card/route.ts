@@ -1,7 +1,9 @@
-import { NextRequest } from 'next/server';
 import { fetchAllEntries, computeStats, generateSVG } from '@/lib/stats';
 
-export async function GET(request: NextRequest) {
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   const API_KEY = process.env.MANGABAKA_API_KEY || '';
   const BASE_URL = 'https://api.mangabaka.org';
 
@@ -9,7 +11,7 @@ export async function GET(request: NextRequest) {
     // Fetch profile for nickname
     const profileResp = await fetch(`${BASE_URL}/v1/my/profile`, {
       headers: { 'x-api-key': API_KEY },
-      cache: 'force-cache' as any,
+      cache: 'no-store',
     });
 
     let nickname = 'User';
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch library entries and compute stats
-    const entries = await fetchAllEntries();
+    const entries = await fetchAllEntries(API_KEY, BASE_URL);
     const stats = computeStats(entries);
 
     // Generate SVG card
