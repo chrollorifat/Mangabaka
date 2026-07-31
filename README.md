@@ -2,7 +2,7 @@
 
 A dynamic SVG stats card for your MangaBaka library, deployable on GitHub Pages with automatic daily updates.
 
-![Demo](https://via.placeholder.com/850x420/0f0f1a/ffffff?text=MangaBaka+Stats+Card+Preview)
+![Demo](https://chrollorifat.github.io/Mangabaka/card.svg)
 
 ## Features
 
