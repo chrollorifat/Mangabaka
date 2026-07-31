@@ -267,12 +267,7 @@ function generateSVG(stats, nickname) {
     </g>
   </g>
 
-  <g transform="translate(660, 185)">
-    <text x="0" y="0" fill="#ffffff" font-size="13" font-weight="600" font-family="system-ui, sans-serif">Top Tags</text>
-    <g transform="translate(0, 18)">
-      ${tagBars}
-    </g>
-  </g>
+
 
   <text x="${width - 30}" y="${height - 15}" fill="#555570" font-size="10" text-anchor="end" font-family="system-ui, sans-serif">
     mangabaka.org • Generated dynamically
