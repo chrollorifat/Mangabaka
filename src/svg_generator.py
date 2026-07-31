@@ -1,375 +1,357 @@
 """
-SVG Generator Module - Modern Responsive Dashboard
+SVG Generator Module for MangaBaka Stats Card.
 
-This module generates a beautiful, responsive SVG stats card with:
-- Dynamic height calculation to prevent overlap
-- Modern glassmorphism design
+Generates a modern, responsive SVG dashboard with:
+- Dynamic height calculation to prevent element overlap
+- Modern "Midnight Aurora" color theme
+- Comprehensive statistics display
 - Activity heatmap (last 7 days)
-- Completion/Success rates
-- Top rated manga picks
-- Genre distribution bar chart
-- Reading status breakdown
+- Genre distribution and reading status breakdowns
 
-Key Design Principles:
-1. **Dynamic Sizing**: Canvas expands vertically based on content
-2. **Grid System**: Consistent spacing prevents visual clutter
-3. **Component-Based**: Each section is independently built
-4. **Responsive**: Works at any display size via viewBox
-5. **No Overlaps**: Careful Y-coordinate calculation for each row
+Design Principles:
+1. **Responsive**: Uses viewBox for perfect scaling on any screen
+2. **No Overlaps**: Careful Y-coordinate spacing between sections
+3. **Clean Typography**: High contrast, readable fonts
+4. **Modern Aesthetics**: Glassmorphism, gradients, ambient lighting
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict
 from dataclasses import dataclass
-import math
 from src.stats_processor import LibraryStats
 
 
 @dataclass(frozen=True)
 class Colors:
-    """Modern color palette - Deep Ocean theme."""
-    bg_start: str = "#0f172a"
-    bg_end: str = "#1e293b"
-    card_bg: str = "#334155"
-    text_primary: str = "#f8fafc"
-    text_secondary: str = "#94a3b8"
-    accent_blue: str = "#38bdf8"
-    accent_purple: str = "#818cf8"
-    success: str = "#4ade80"
-    warning: str = "#facc15"
-    danger: str = "#f87171"
-    reading: str = "#3b82f6"
-    completed: str = "#10b981"
-    planned: str = "#f59e0b"
-    dropped: str = "#ef4444"
-    paused: str = "#8b5cf6"
+    """
+    Midnight Aurora Color Palette.
+    Deep indigo/slate background with vibrant sky blue, purple, and pink accents.
+    """
+    # Background gradient
+    bg_start: str = "#0f172a"      # Deep slate
+    bg_end: str = "#1e1b4b"        # Midnight indigo
+    
+    # Text colors
+    text_primary: str = "#f8fafc"   # Bright white
+    text_secondary: str = "#94a3b8" # Muted slate
+    text_muted: str = "#64748b"     # Darker slate
+    
+    # Accent gradients
+    accent_1: str = "#38bdf8"       # Sky blue
+    accent_2: str = "#818cf8"       # Indigo
+    accent_3: str = "#c084fc"       # Purple
+    accent_4: str = "#f472b6"       # Pink
+    
+    # Card backgrounds
+    card_bg: str = "rgba(30, 41, 59, 0.7)"
+    card_border: str = "rgba(148, 163, 184, 0.1)"
+    
+    # Status-specific colors
+    status_reading: str = "#38bdf8"
+    status_completed: str = "#4ade80"
+    status_plan: str = "#c084fc"
+    status_dropped: str = "#f87171"
+    status_paused: str = "#fbbf24"
 
 
 # Layout constants
-CANVAS_WIDTH: int = 1200
-PADDING: int = 30
-GRID_GAP: int = 20
-CARD_RADIUS: int = 12
-FONT_FAMILY: str = "'Segoe UI', Roboto, sans-serif"
+WIDTH: int = 1200  # Full-width canvas for better screen utilization
+PADDING: int = 60  # Generous side padding
+GAP: int = 40      # Extra-large gap between major sections
 
 
-def _format_num(value: float) -> str:
-    """Format numbers: integers with commas, floats with 1 decimal."""
-    if value == int(value):
-        return f"{int(value):,}"
-    return f"{value:,.1f}"
+def _fmt_num(val: float) -> str:
+    """Format numbers: whole numbers with commas, decimals with 1 place."""
+    if val == int(val):
+        return f"{int(val):,}"
+    return f"{val:,.1f}"
 
 
 def _truncate(text: str, max_len: int) -> str:
-    """Truncate text with ellipsis to prevent overflow."""
+    """Truncate long text with ellipsis to prevent overflow."""
     if not text or len(text) <= max_len:
-        return text or ""
+        return text or "Unknown"
     return text[:max_len-3] + "..."
-
-
-def _heatmap_svg(data: List[int], x: int, y: int) -> str:
-    """Generate 7-day activity heatmap squares."""
-    # Ensure exactly 7 days
-    days = (data + [0]*7)[:7]
-    rects = []
-    max_val = max(days) if days else 1
-    for i, val in enumerate(days):
-        cx = x + i * 40
-        # Opacity based on activity level
-        opacity = 0.3 if val == 0 else 0.4 + (min(val, max(max_val, 1))/max(max_val, 1))*0.6
-        rects.append(
-            f'<rect x="{cx}" y="{y}" width="30" height="30" rx="6" '
-            f'fill="{Colors.accent_blue}" fill-opacity="{opacity}"/>'
-            f'<text x="{cx+15}" y="{y+20}" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">{val}</text>'
-        )
-    return "\n".join(rects)
-
-
-def _donut_svg(cx: int, cy: int, radius: int, status: Dict[str, int]) -> str:
-    """Generate donut chart for status distribution."""
-    total = sum(status.values())
-    if total == 0:
-        return ""
-    
-    colors_map = {
-        'reading': Colors.reading,
-        'completed': Colors.completed,
-        'planned': Colors.planned,
-        'dropped': Colors.dropped,
-    }
-    
-    parts = []
-    offset = 0
-    circumference = 2 * math.pi * radius
-    
-    for key in ['reading', 'completed', 'planned', 'dropped']:
-        val = status.get(key, 0)
-        if val == 0:
-            continue
-        
-        frac = val / total
-        dash = circumference * frac
-        gap = circumference - dash
-        rotate = (offset / circumference) * 360
-        
-        parts.append(
-            f'<circle cx="{cx}" cy="{cy}" r="{radius}" fill="none" '
-            f'stroke="{colors_map[key]}" stroke-width="20" '
-            f'stroke-dasharray="{dash} {gap}" '
-            f'transform="rotate({rotate - 90} {cx} {cy})" opacity="0.9"/>'
-        )
-        offset += dash
-    
-    return "\n".join(parts)
 
 
 def generate_svg(stats: LibraryStats, username: str) -> str:
     """
-    Generate complete SVG card with dynamic height and all sections.
+    Generate complete SVG card with all sections.
+    
+    Layout Structure (vertical rows with careful spacing):
+    ┌─────────────────────────────────────────┐
+    │ ROW 1: HEADER (Title + User + Donut)    │ 160px
+    ├─────────────────────────────────────────┤
+    │ ROW 2: PRIMARY STATS (4 cards)          │ 120px
+    ├─────────────────────────────────────────┤
+    │ ROW 3: TOP GENRES (Bar chart)           │ 180px
+    ├────── 40px SPACING BUFFER ──────────────┤
+    │ ROW 4: READING STATUS (Progress bars)   │ 160px
+    ├─────────────────────────────────────────┤
+    │ ROW 5: METRICS (3 rate cards)           │ 110px
+    ├─────────────────────────────────────────┤
+    │ ROW 6: ACTIVITY HEATMAP (7 days)        │ 100px
+    └─────────────────────────────────────────┘
     
     Args:
-        stats: LibraryStats dataclass containing all computed statistics
+        stats: Processed library statistics
         username: User's display name
         
-    Layout rows (carefully calculated to prevent overlap):
-    1. Header (user + donut): 140px
-    2. Primary stats (4 cards): 100px  
-    3. Genre bar chart: 140px
-    4. Status breakdown: 140px
-    5. Secondary stats (3 cards): 90px
-    6. Heatmap: 80px
-    7. Top picks: 120px
+    Returns:
+        Complete SVG string
     """
-    
-    # Build status counts dict from individual fields
-    status_counts = {
-        'reading': stats.reading,
-        'completed': stats.completed,
-        'planned': stats.plan_to_read,
-        'dropped': stats.dropped,
-        'paused': stats.paused,
-    }
-    
-    # Convert top_genres list of tuples to dict
-    genre_counts = dict(stats.top_genres)
-    
-    # Row heights for dynamic layout - carefully spaced to prevent overlap
-    ROWS = {
-        'header': 140,
-        'primary': 100,
-        'genres': 140,
-        'status': 140,
-        'secondary': 90,
-        'heatmap': 80,
-        'picks': 120,
-    }
-    
     # Calculate total height dynamically
-    total_height = (
-        PADDING +
-        ROWS['header'] + GRID_GAP +
-        ROWS['primary'] + GRID_GAP +
-        ROWS['genres'] + GRID_GAP +
-        ROWS['status'] + GRID_GAP +
-        ROWS['secondary'] + GRID_GAP +
-        ROWS['heatmap'] + GRID_GAP +
-        ROWS['picks'] +
-        PADDING
-    )
+    # Each row height + gaps + padding
+    HEIGHT = 160 + 120 + 180 + 40 + 160 + 110 + 100 + 40
     
-    svg = []
+    # Start SVG with responsive viewBox
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="0 0 {WIDTH} {HEIGHT}" '
+        f'width="100%" height="auto" '
+        f'font-family="\'Segoe UI\', Roboto, sans-serif">'
+    ]
     
-    # SVG Header with dynamic height and viewBox for responsiveness
-    svg.append(
-        f'<svg width="100%" height="auto" viewBox="0 0 {CANVAS_WIDTH} {total_height}" '
-        f'xmlns="http://www.w3.org/2000/svg" font-family="{FONT_FAMILY}">'
-    )
-    
-    # Definitions
-    svg.append('''
+    # === DEFINITIONS: Gradients & Filters ===
+    svg.append(f'''
     <defs>
-      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0f172a"/>
-        <stop offset="100%" stop-color="#1e293b"/>
-      </linearGradient>
-      <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#334155" stop-opacity="0.6"/>
-        <stop offset="100%" stop-color="#334155" stop-opacity="0.3"/>
-      </linearGradient>
-      <style>
-        .title{font-size:14px;fill:#94a3b8;font-weight:600;letter-spacing:0.5px}
-        .value{font-size:24px;fill:#f8fafc;font-weight:700}
-        .sub{font-size:12px;fill:#cbd5e1}
-        .label{font-size:11px;fill:#64748b;font-weight:500}
-        .section-title{font-size:16px;fill:#f8fafc;font-weight:bold}
-      </style>
+        <!-- Background Gradient -->
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="{Colors.bg_start}"/>
+            <stop offset="100%" stop-color="{Colors.bg_end}"/>
+        </linearGradient>
+        
+        <!-- Accent Gradient (Blue to Purple) -->
+        <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="{Colors.accent_1}"/>
+            <stop offset="100%" stop-color="{Colors.accent_3}"/>
+        </linearGradient>
+        
+        <!-- Glow Filter for Ambient Effects -->
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="40" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        
+        <!-- Text Styles -->
+        <style>
+            .section-title {{ font-size: 18px; fill: {Colors.text_primary}; font-weight: bold; }}
+            .card-label {{ font-size: 14px; fill: {Colors.text_secondary}; font-weight: 600; }}
+            .card-value {{ font-size: 32px; fill: url(#accentGrad); font-weight: bold; }}
+            .metric-main {{ font-size: 26px; fill: {Colors.text_primary}; font-weight: bold; }}
+            .metric-sub {{ font-size: 13px; fill: {Colors.text_secondary}; }}
+            .bar-label {{ font-size: 14px; fill: {Colors.text_secondary}; }}
+            .bar-value {{ font-size: 14px; fill: {Colors.text_primary}; font-weight: bold; }}
+        </style>
     </defs>
     ''')
     
-    # Background
-    svg.append(f'<rect width="100%" height="100%" fill="url(#bgGrad)" rx="{CARD_RADIUS}"/>')
+    # === BACKGROUND ===
+    svg.append(f'<rect width="100%" height="100%" fill="url(#bgGrad)"/>')
     
-    # Ambient glow effects for depth
-    svg.append(f'<circle cx="{CANVAS_WIDTH-80}" cy="80" r="120" fill="#38bdf8" opacity="0.05"/>')
-    svg.append(f'<circle cx="80" cy="{total_height-80}" r="100" fill="#818cf8" opacity="0.05"/>')
+    # Ambient orbs for depth (large blurred circles)
+    svg.append(f'<circle cx="150" cy="150" r="200" fill="{Colors.accent_2}" opacity="0.12" filter="url(#glow)"/>')
+    svg.append(f'<circle cx="{WIDTH-150}" cy="{HEIGHT-150}" r="250" fill="{Colors.accent_3}" opacity="0.10" filter="url(#glow)"/>')
     
-    y = PADDING
-    
-    # === ROW 1: Header (User Info + Donut) ===
-    # Avatar circle
-    svg.append(f'<circle cx="55" cy="{y+40}" r="35" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="3"/>')
-    initial = username[0].upper() if username else '?'
-    svg.append(f'<text x="55" y="{y+52}" text-anchor="middle" font-size="28" font-weight="bold" fill="#38bdf8">{initial}</text>')
-    
-    # Username & Total Entries
-    username_truncated = _truncate(username, 20)
-    total_entries = _format_num(stats.total)
-    svg.append(f'<text x="110" y="{y+35}" font-size="20" font-weight="bold" fill="#f8fafc">@{username_truncated}</text>')
-    svg.append(f'<text x="110" y="{y+60}" font-size="14" fill="#94a3b8">Total Entries: <tspan fill="#38bdf8" font-weight="bold">{total_entries}</tspan></text>')
-    
-    # Donut chart (right side)
-    svg.append(_donut_svg(CANVAS_WIDTH-90, y+50, 50, status_counts))
-    
-    y += ROWS['header'] + GRID_GAP
-    
-    # === ROW 2: Primary Stats (4 cards) ===
-    primary = [
-        {'lbl': 'CHAPTERS READ', 'val': stats.chapters, 'color': Colors.accent_blue},
-        {'lbl': 'VOLUMES READ', 'val': stats.volumes, 'color': Colors.accent_purple},
-        {'lbl': 'AVG SCORE', 'val': stats.avg_rating, 'suffix': '/10', 'color': Colors.warning},
-        {'lbl': 'REREADS', 'val': stats.rereads, 'color': Colors.success},
-    ]
-    
-    card_w = (CANVAS_WIDTH - PADDING*2 - GRID_GAP*3) // 4
-    
-    for i, s in enumerate(primary):
-        cx = PADDING + i * (card_w + GRID_GAP)
-        val_str = f"{_format_num(s['val'])}{s.get('suffix', '')}"
+    # === ROW 1: HEADER (y=20) ===
+    y = 20
+    svg.append(f'''
+    <g transform="translate(0, {y})">
+        <!-- Main Title -->
+        <text x="{PADDING}" y="0" font-size="42" font-weight="bold" fill="{Colors.text_primary}">MangaBaka Stats</text>
+        <text x="{PADDING}" y="35" font-size="18" fill="{Colors.text_secondary}">Comprehensive Library Analytics</text>
         
-        svg.append(f'<rect x="{cx}" y="{y}" width="{card_w}" height="80" rx="8" fill="url(#cardGrad)"/>')
-        svg.append(f'<text x="{cx+card_w/2}" y="{y+26}" text-anchor="middle" class="title">{s["lbl"]}</text>')
-        svg.append(f'<text x="{cx+card_w/2}" y="{y+60}" text-anchor="middle" class="value" fill="{s["color"]}">{val_str}</text>')
+        <!-- Decorative Separator Line -->
+        <line x1="{PADDING}" y1="55" x2="{WIDTH-PADDING-200}" y2="55" stroke="{Colors.card_border}" stroke-width="1"/>
+        
+        <!-- Avatar Circle -->
+        <circle cx="{PADDING+30}" cy="110" r="28" fill="url(#accentGrad)"/>
+        <text x="{PADDING+30}" y="120" text-anchor="middle" font-size="22" font-weight="bold" fill="#fff">{username[0].upper() if username else '?'}</text>
+        
+        <!-- Username -->
+        <text x="{PADDING+75}" y="105" font-size="24" font-weight="600" fill="{Colors.text_primary}">@{username}</text>
+        <text x="{PADDING+75}" y="130" font-size="16" fill="{Colors.text_secondary}">Total Entries: {stats.total_entries:,}</text>
+        
+        <!-- Mini Donut Chart (Right Side) -->
+        <g transform="translate({WIDTH-PADDING-100}, 40)">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="{Colors.card_border}" stroke-width="10"/>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="url(#accentGrad)" stroke-width="10" 
+                    stroke-dasharray="220 314" stroke-linecap="round" transform="rotate(-90 60 60)"/>
+            <text x="60" y="65" text-anchor="middle" font-size="14" fill="{Colors.text_primary}">Active</text>
+        </g>
+    </g>
+    ''')
     
-    y += ROWS['primary'] + GRID_GAP
+    y = 160  # Move to next row
     
-    # === ROW 3: Genre Distribution (Bar Chart) ===
-    svg.append(f'<text x="{PADDING}" y="{y}" class="section-title">TOP GENRES</text>')
+    # === ROW 2: PRIMARY STATS (4 Cards) ===
+    card_w = 240
+    card_h = 90
+    start_x = PADDING
     
-    # Sort genres by count and take top 5
-    sorted_genres = sorted(genre_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-    max_count = sorted_genres[0][1] if sorted_genres else 1
+    def stat_card(label: str, value: str, idx: int) -> str:
+        x = start_x + idx * (card_w + 20)
+        return f'''
+        <g transform="translate({x}, {y})">
+            <rect width="{card_w}" height="{card_h}" rx="12" fill="{Colors.card_bg}" stroke="{Colors.card_border}" stroke-width="1"/>
+            <text x="20" y="35" class="card-label">{label}</text>
+            <text x="20" y="65" class="card-value">{value}</text>
+        </g>
+        '''
     
-    gy = y + 25
-    bar_height = 20
+    chapters = _fmt_num(stats.chapters_read)
+    volumes = _fmt_num(stats.volumes_read)
+    score = f"{stats.avg_score:.1f}" if stats.avg_score else "N/A"
+    rereads = f"{stats.rereads:,}"
+    
+    svg.append(stat_card("CHAPTERS READ", chapters, 0))
+    svg.append(stat_card("VOLUMES READ", volumes, 1))
+    svg.append(stat_card("AVG SCORE", score, 2))
+    svg.append(stat_card("REREADS", rereads, 3))
+    
+    y = 160 + 120  # Move to next row
+    
+    # === ROW 3: TOP GENRES (Bar Chart) ===
+    top_genres = sorted(stats.genres.items(), key=lambda x: x[1], reverse=True)[:5]
+    max_count = top_genres[0][1] if top_genres else 1
+    bar_h = 24
     bar_gap = 12
-    label_width = 120
-    max_bar_width = CANVAS_WIDTH - PADDING*2 - label_width - 60
+    label_w = 140
+    max_bar_w = WIDTH - PADDING*2 - label_w - 50
     
-    for genre_name, count in sorted_genres:
-        display_name = _truncate(genre_name, 15)
-        bar_width = (count / max_count) * max_bar_width if max_count > 0 else 0
+    genre_bars = []
+    for i, (genre, count) in enumerate(top_genres):
+        bar_w = (count / max_count) * max_bar_w
+        ypos = i * (bar_h + bar_gap)
+        display_name = _truncate(genre, 18)
         
-        svg.append(f'<text x="{PADDING}" y="{gy+15}" font-size="12" fill="#94a3b8">{display_name}</text>')
-        svg.append(f'<rect x="{PADDING+label_width}" y="{gy+5}" width="{bar_width}" height="{bar_height}" rx="4" fill="{Colors.accent_blue}" opacity="0.8"/>')
-        svg.append(f'<text x="{PADDING+label_width+bar_width+8}" y="{gy+19}" font-size="12" fill="#f8fafc">{count}</text>')
-        gy += bar_height + bar_gap
+        genre_bars.append(f'''
+        <g transform="translate({PADDING}, {ypos})">
+            <text x="0" y="18" class="bar-label">{display_name}</text>
+            <rect x="{label_w}" y="2" width="{bar_w}" height="{bar_h}" rx="4" fill="url(#accentGrad)" opacity="0.85"/>
+            <text x="{label_w + bar_w + 8}" y="18" class="bar-value">{count}</text>
+        </g>
+        ''')
     
-    y += ROWS['genres'] + GRID_GAP
+    svg.append(f'''
+    <g transform="translate(0, {y})">
+        <text x="{PADDING}" y="0" class="section-title">TOP GENRES</text>
+        {''.join(genre_bars)}
+    </g>
+    ''')
     
-    # === ROW 4: Reading Status Breakdown ===
-    svg.append(f'<text x="{PADDING}" y="{y}" class="section-title">READING STATUS</text>')
+    y = 160 + 120 + 180 + 40  # Add extra 40px spacing buffer!
     
-    sy = y + 25
-    status_items = [
-        ("Reading", stats.reading, Colors.reading),
-        ("Completed", stats.completed, Colors.completed),
-        ("Plan to Read", stats.plan_to_read, Colors.planned),
-        ("Dropped", stats.dropped, Colors.dropped),
-        ("Paused", stats.paused, Colors.paused),
+    # === ROW 4: READING STATUS (Progress Bars) ===
+    status_data = [
+        ("Reading", stats.status_counts.get('Reading', 0), Colors.status_reading),
+        ("Completed", stats.status_counts.get('Completed', 0), Colors.status_completed),
+        ("Plan to Read", stats.status_counts.get('Plan to Read', 0), Colors.status_plan),
+        ("Dropped", stats.status_counts.get('Dropped', 0), Colors.status_dropped),
+        ("Paused", stats.status_counts.get('Paused', 0), Colors.status_paused),
     ]
     
-    for s_name, s_count, s_color in status_items:
-        if s_count == 0:
-            continue
-        pct = (s_count / stats.total * 100) if stats.total > 0 else 0
-        bar_w = (pct / 100) * (CANVAS_WIDTH - PADDING*2 - 140)
+    total_status = sum(s[1] for s in status_data) or 1
+    bar_h_status = 10
+    row_gap_status = 28
+    max_bar_w_status = WIDTH - PADDING*2 - 200
+    
+    status_rows = []
+    for label, count, color in status_data:
+        pct = (count / total_status) * 100
+        bar_w = (pct / 100) * max_bar_w_status
         
-        svg.append(f'<text x="{PADDING}" y="{sy+14}" font-size="12" fill="#94a3b8" width="100">{s_name}</text>')
-        svg.append(f'<rect x="{PADDING+110}" y="{sy+4}" width="{bar_w}" height="10" rx="5" fill="{s_color}"/>')
-        svg.append(f'<text x="{PADDING+110+bar_w+8}" y="{sy+14}" font-size="12" fill="#f8fafc">{s_count} ({pct:.1f}%)</text>')
-        sy += 26
+        status_rows.append(f'''
+        <g transform="translate({PADDING}, {status_rows.__len__() * row_gap_status if status_rows else 0})">
+            <text x="0" y="12" class="bar-label" width="120">{label}</text>
+            <rect x="130" y="4" width="{bar_w}" height="{bar_h_status}" rx="5" fill="{color}"/>
+            <text x="{130 + bar_w + 8}" y="13" class="bar-value">{count} ({pct:.1f}%)</text>
+        </g>
+        ''')
     
-    y += ROWS['status'] + GRID_GAP
+    # Re-calculate Y positions properly
+    status_svg_parts = []
+    for i, (label, count, color) in enumerate(status_data):
+        pct = (count / total_status) * 100
+        bar_w = (pct / 100) * max_bar_w_status
+        ypos = i * row_gap_status
+        
+        status_svg_parts.append(f'''
+        <g transform="translate({PADDING}, {ypos})">
+            <text x="0" y="12" class="bar-label">{label}</text>
+            <rect x="130" y="4" width="{bar_w}" height="{bar_h_status}" rx="5" fill="{color}"/>
+            <text x="{130 + bar_w + 8}" y="13" class="bar-value">{count} ({pct:.1f}%)</text>
+        </g>
+        ''')
     
-    # === ROW 5: Secondary Stats (Rates & Averages) ===
-    total_ent = max(stats.total, 1)
-    completed = stats.completed
-    dropped = stats.dropped
+    svg.append(f'''
+    <g transform="translate(0, {y})">
+        <text x="{PADDING}" y="0" class="section-title">READING STATUS</text>
+        {''.join(status_svg_parts)}
+    </g>
+    ''')
     
-    completion_rate = (completed / total_ent) * 100 if total_ent > 0 else 0
-    success_rate = (completed / max(completed + dropped, 1)) * 100 if (completed + dropped) > 0 else 0
-    avg_chap_day = stats.avg_chapters_per_day
+    y = 160 + 120 + 180 + 40 + 160  # Next row
     
-    secondary = [
-        {'lbl': 'COMPLETION RATE', 'val': f"{completion_rate:.1f}%", 'sub': f"{completed}/{stats.total}", 'color': Colors.accent_blue},
-        {'lbl': 'SUCCESS RATIO', 'val': f"{success_rate:.1f}%", 'sub': 'Completed vs Dropped', 'color': Colors.success},
-        {'lbl': 'AVG CHAPS/DAY', 'val': f"{avg_chap_day:.2f}", 'sub': 'Last 30 Days', 'color': Colors.warning},
+    # === ROW 5: METRICS (3 Cards) ===
+    metric_w = 340
+    metric_h = 80
+    
+    comp_rate = stats.completion_rate
+    succ_rate = stats.success_ratio
+    avg_chaps = f"{stats.avg_chapters_per_day:.2f}" if stats.avg_chapters_per_day else "0.00"
+    
+    metrics = [
+        ("COMPLETION RATE", f"{comp_rate:.1f}%", f"{stats.status_counts.get('Completed', 0)}/{stats.total_entries}"),
+        ("SUCCESS RATIO", f"{succ_rate:.1f}%", "Completed vs Dropped"),
+        ("AVG CHAPS/DAY", avg_chaps, "Last 30 Days"),
     ]
     
-    sec_w = (CANVAS_WIDTH - PADDING*2 - GRID_GAP*2) // 3
+    metric_cards = []
+    for i, (title, main, sub) in enumerate(metrics):
+        x = PADDING + i * (metric_w + 20)
+        metric_cards.append(f'''
+        <g transform="translate({x}, {y})">
+            <rect width="{metric_w}" height="{metric_h}" rx="12" fill="{Colors.card_bg}" stroke="{Colors.card_border}" stroke-width="1"/>
+            <text x="20" y="25" font-size="13" fill="{Colors.text_secondary}" font-weight="600" letter-spacing="0.5">{title}</text>
+            <text x="20" y="55" class="metric-main">{main}</text>
+            <text x="20" y="72" class="metric-sub">{sub}</text>
+        </g>
+        ''')
     
-    for i, s in enumerate(secondary):
-        cx = PADDING + i * (sec_w + GRID_GAP)
-        svg.append(f'<rect x="{cx}" y="{y}" width="{sec_w}" height="70" rx="8" fill="url(#cardGrad)"/>')
-        svg.append(f'<text x="{cx+sec_w/2}" y="{y+24}" text-anchor="middle" class="title">{s["lbl"]}</text>')
-        svg.append(f'<text x="{cx+sec_w/2}" y="{y+52}" text-anchor="middle" class="value" fill="{s["color"]}">{s["val"]}</text>')
-        svg.append(f'<text x="{cx+sec_w/2}" y="{y+66}" text-anchor="middle" class="label">{s["sub"]}</text>')
+    svg.append(''.join(metric_cards))
     
-    y += ROWS['secondary'] + GRID_GAP
+    y = 160 + 120 + 180 + 40 + 160 + 110  # Next row
     
-    # === ROW 6: 7-Day Activity Heatmap ===
-    activity = stats.activity_last_7_days
-    svg.append(f'<text x="{PADDING}" y="{y}" class="section-title">ACTIVITY (LAST 7 DAYS)</text>')
-    svg.append(_heatmap_svg(activity, PADDING, y+20))
+    # === ROW 6: ACTIVITY HEATMAP (7 Days) ===
+    activity = stats.activity_last_7_days or [0] * 7
+    max_act = max(activity) or 1
+    square_size = 50
+    square_gap = 15
     
-    y += ROWS['heatmap'] + GRID_GAP
-    
-    # === ROW 7: Top Rated Manga ===
-    top_manga = stats.top_rated_manga
-    
-    svg.append(f'<text x="{PADDING}" y="{y}" class="section-title">HIGHEST RATED MANGA</text>')
-    
-    py = y + 25
-    # Split into two columns for better use of space
-    col_w = (CANVAS_WIDTH - PADDING*2 - GRID_GAP) // 2
-    
-    def render_manga_picks(items: list, x_off: int) -> str:
-        """Render top manga picks with score badges and details."""
-        if not items:
-            return f'<text x="{x_off}" y="{py+30}" class="label">No data available</text>'
+    heatmap_squares = []
+    for i, count in enumerate(activity):
+        x = PADDING + i * (square_size + square_gap)
+        opacity = 0.2 + (0.8 * (count / max_act))
         
-        parts = []
-        for idx, item in enumerate(items[:2]):
-            yp = py + idx * 55
-            score = item.get('score', 0)
-            title = _truncate(item.get('title', 'Unknown'), 35)
-            
-            badge_col = Colors.success if score >= 8 else Colors.warning if score >= 6 else Colors.danger
-            
-            # Card background
-            parts.append(f'<rect x="{x_off}" y="{yp}" width="{col_w}" height="45" rx="8" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>')
-            
-            # Score badge
-            parts.append(f'<rect x="{x_off+10}" y="{yp+8}" width="45" height="30" rx="6" fill="{badge_col}"/>')
-            parts.append(f'<text x="{x_off+32}" y="{yp+22}" text-anchor="middle" font-size="16" fill="#fff" font-weight="bold">{score}</text>')
-            parts.append(f'<text x="{x_off+32}" y="{yp+35}" text-anchor="middle" font-size="8" fill="#fff">SCORE</text>')
-            
-            # Title
-            parts.append(f'<text x="{x_off+65}" y="{yp+22}" font-size="14" fill="#f8fafc" font-weight="bold">{title}</text>')
-            parts.append(f'<text x="{x_off+65}" y="{yp+38}" font-size="11" fill="#94a3b8">Click to view details</text>')
-        
-        return "".join(parts)
+        heatmap_squares.append(f'''
+        <g transform="translate({x}, {y})">
+            <rect width="{square_size}" height="{square_size}" rx="8" fill="{Colors.accent_2}" opacity="{opacity}"/>
+            <text x="{square_size/2}" y="{square_size/2 + 5}" text-anchor="middle" font-size="16" font-weight="bold" fill="#fff">{count}</text>
+            <text x="{square_size/2}" y="{square_size + 15}" text-anchor="middle" font-size="11" fill="{Colors.text_secondary}">Day {i+1}</text>
+        </g>
+        ''')
     
-    svg.append(render_manga_picks(top_manga, PADDING))
+    svg.append(f'''
+    <g transform="translate(0, {y})">
+        <text x="{PADDING}" y="-20" class="section-title">ACTIVITY (LAST 7 DAYS)</text>
+        {''.join(heatmap_squares)}
+    </g>
+    ''')
     
+    # Close SVG
     svg.append('</svg>')
-    return "".join(svg)
+    
+    return ''.join(svg)
