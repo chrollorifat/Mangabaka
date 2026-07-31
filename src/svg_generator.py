@@ -316,16 +316,20 @@ def generate_svg(stats: LibraryStats, nickname: str) -> str:
     <!-- Chapters Read Card -->
     <rect x="125" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
           stroke="#ffffff" stroke-opacity="0.06"/>
+    <!-- Format chapters to max 1 decimal place to prevent overflow -->
+    <!-- Using :.1f ensures at most one decimal (e.g., 1234.5 or 1234) -->
+    <!-- The comma adds thousands separator for readability -->
     <text x="180" y="25" fill="#4ECDC4" font-size="24" font-weight="700" 
-          text-anchor="middle" font-family="system-ui, sans-serif">{stats.chapters:,}</text>
+          text-anchor="middle" font-family="system-ui, sans-serif">{stats.chapters:,.1f}</text>
     <text x="180" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
           font-family="system-ui, sans-serif">Chapters Read</text>
 
     <!-- Volumes Read Card -->
     <rect x="250" y="0" width="110" height="70" rx="8" fill="#ffffff" opacity="0.04" 
           stroke="#ffffff" stroke-opacity="0.06"/>
+    <!-- Format volumes to max 1 decimal place to prevent overflow -->
     <text x="305" y="25" fill="#F8B500" font-size="24" font-weight="700" 
-          text-anchor="middle" font-family="system-ui, sans-serif">{stats.volumes:,}</text>
+          text-anchor="middle" font-family="system-ui, sans-serif">{stats.volumes:,.1f}</text>
     <text x="305" y="45" fill="#a0a0b0" font-size="11" text-anchor="middle" 
           font-family="system-ui, sans-serif">Volumes Read</text>
 

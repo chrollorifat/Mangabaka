@@ -1,0 +1,3 @@
+# Python 3.11+ version specification for GitHub Actions
+# This ensures consistent Python version across environments
+3.11
