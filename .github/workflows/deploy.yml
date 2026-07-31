@@ -1,5 +1,9 @@
 name: Deploy to GitHub Pages
 
+# Trigger the workflow on:
+# 1. Push to main branch
+# 2. Manual trigger (workflow_dispatch)
+# 3. Daily schedule at midnight UTC (cron)
 on:
   push:
     branches:
@@ -8,11 +12,13 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
+# Permissions required for GitHub Pages deployment
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Only allow one concurrent deployment
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -25,27 +31,44 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
+      # Step 1: Checkout the repository code
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Step 2: Set up Python environment
+      # We use Python 3.11+ for modern features and better type hints
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '22'
+          python-version: '3.11'
+          cache: 'pip'  # Cache pip dependencies for faster builds
 
-      - name: Build card
+      # Step 3: Install project dependencies
+      # requirements.txt contains all needed packages
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Run the card generation script
+      # The API key is passed as an environment variable from secrets
+      - name: Generate stats card
         env:
           MANGABAKA_API_KEY: ${{ secrets.MANGABAKA_API_KEY }}
-        run: node build.js
+        run: python main.py
 
+      # Step 5: Configure GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # Step 6: Upload the generated SVG as a Pages artifact
+      # The dist/ folder contains our card.svg
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
+      # Step 7: Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

@@ -1,0 +1,12 @@
+# Python dependencies for MangaBaka Stats Card Generator
+# 
+# This file lists all external packages needed to run the project.
+# Install with: pip install -r requirements.txt
+
+# HTTP client library for making API requests
+# We use 'requests' instead of urllib because it's:
+# - More Pythonic and easier to use
+# - Has better error handling
+# - Supports sessions for connection pooling
+# - Well-maintained and widely used in production
+requests>=2.31.0

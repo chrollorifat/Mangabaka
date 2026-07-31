@@ -1,25 +1,178 @@
-# MangaBaka Stats Card
+# MangaBaka Stats Card (Python Edition)
 
-A dynamic SVG stats card for your MangaBaka library, deployable on GitHub Pages with automatic daily updates.
+A dynamic SVG stats card for your MangaBaka library, built with Python and deployable on GitHub Pages with automatic daily updates.
 
 ![Demo](https://chrollorifat.github.io/Mangabaka/card.svg)
 
-## Features
+## 🎯 Project Overview
 
-- **Total library entries** - See your complete manga collection size
-- **Chapters & volumes read** - Track your reading progress
-- **Average rating** - View your rating patterns
-- **Status distribution** - Visual breakdown of Reading, Completed, Paused, Dropped, Plan to Read
-- **Media type breakdown** - Manga, Manhwa, Manhua, Novel statistics
-- **Top 5 genres & tags** - Discover your reading preferences
-- **Auto-updates daily** - Scheduled GitHub Actions keep your stats fresh
-- **Beautiful SVG design** - Gradient backgrounds, glow effects, and modern styling
+This project demonstrates **modern Python best practices** while creating a useful tool:
+- ✅ Type hints throughout (Python 3.11+)
+- ✅ Modular architecture with separation of concerns
+- ✅ Comprehensive error handling
+- ✅ PEP 8 compliant code
+- ✅ Extensive documentation and comments
+- ✅ Production-ready patterns
 
-## Quick Start
+---
+
+## 📚 Learning Guide: Python Concepts Used
+
+This project is designed to be educational. Here are the key Python concepts you'll learn:
+
+### 1. **Type Hints** (`typing` module)
+
+Type hints make code more readable and help catch errors early:
+
+```python
+# Before (no types - unclear what this returns)
+def fetch_profile():
+    ...
+
+# After (clear return type)
+def fetch_profile(self) -> dict[str, Any]:
+    """Fetch user profile data."""
+    ...
+```
+
+**Why use type hints?**
+- IDE autocomplete works better
+- Catches bugs before runtime (with mypy)
+- Documents function behavior
+- Makes refactoring safer
+
+### 2. **Dataclasses** (`dataclasses` module)
+
+Dataclasses reduce boilerplate for data containers:
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class LibraryStats:
+    total: int = 0
+    chapters: int = 0
+    avg_rating: float = 0.0
+    top_genres: list[tuple[str, int]] = field(default_factory=list)
+```
+
+**Benefits:**
+- Auto-generates `__init__`, `__repr__`, etc.
+- Clear structure for data
+- Type-safe and IDE-friendly
+
+### 3. **Context Managers** (`with` statement)
+
+Context managers ensure proper resource cleanup:
+
+```python
+# The session is automatically closed after use
+with MangaBakaClient(api_key) as client:
+    entries = client.fetch_all_library_entries()
+# Session closed here, even if an error occurred
+```
+
+**Why use context managers?**
+- Prevents resource leaks
+- Cleaner than try/finally
+- Professional pattern for files, network connections, etc.
+
+### 4. **f-strings** (Formatted String Literals)
+
+Modern string formatting (Python 3.6+):
+
+```python
+# Old way (hard to read)
+svg = '<text>{}</text>'.format(nickname)
+
+# New way (clear and concise)
+svg = f'<text>{_escape_xml(nickname)}</text>'
+
+# With expressions
+svg = f'Width: {width}, Height: {height * 2}'
+
+# Number formatting
+svg = f'Chapters: {stats.chapters:,}'  # Adds commas: 1,234
+```
+
+### 5. **Pathlib** for File Paths
+
+Modern path handling (better than `os.path`):
+
+```python
+from pathlib import Path
+
+# Create paths intuitively
+script_dir = Path(__file__).parent
+output_file = script_dir / 'dist' / 'card.svg'
+
+# Check existence
+if output_file.exists():
+    print("File exists!")
+
+# Create directories
+output_file.parent.mkdir(parents=True, exist_ok=True)
+```
+
+### 6. **Exception Handling**
+
+Robust error handling with custom exceptions:
+
+```python
+class MangaBakaAPIError(Exception):
+    """Custom exception for API errors."""
+    pass
+
+try:
+    response = client.fetch_profile()
+except MangaBakaAPIError as e:
+    logging.error(f"API failed: {e}")
+    sys.exit(1)
+except IOError as e:
+    logging.error(f"File error: {e}")
+    sys.exit(1)
+```
+
+### 7. **Logging** (instead of print)
+
+Professional logging for debugging and monitoring:
+
+```python
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+logging.info("Starting process...")      # Normal operation
+logging.warning("Something unexpected")   # Warning but OK
+logging.error("Something failed")         # Error occurred
+logging.exception("Unexpected error")     # Error with stack trace
+```
+
+### 8. **Module Organization**
+
+Clean separation of concerns:
+
+```
+src/
+├── api_client.py      # API communication
+├── stats_processor.py # Data processing
+└── svg_generator.py   # SVG generation
+main.py                # Entry point
+```
+
+**Why modular?**
+- Easier to test individual components
+- Clear responsibilities
+- Reusable code
+- Easier maintenance
+
+---
+
+## 🚀 Quick Start
 
 ### Step 1: Fork This Repository
 
-Click the "Fork" button at the top right of this repository to create your own copy.
+Click the "Fork" button at the top right to create your own copy.
 
 ### Step 2: Get Your MangaBaka API Key
 
@@ -33,292 +186,371 @@ Click the "Fork" button at the top right of this repository to create your own c
 1. Go to your forked repository on GitHub
 2. Click **Settings** tab
 3. In the left sidebar, click **Secrets and variables** → **Actions**
-4. Click **New repository secret** button
-5. Enter the following:
+4. Click **New repository secret**
+5. Enter:
    - **Name**: `MANGABAKA_API_KEY`
-   - **Value**: Paste your API key from Step 2
+   - **Value**: Paste your API key
 6. Click **Add secret**
 
 ### Step 4: Enable GitHub Pages
 
-1. Still in your repository **Settings**
-2. In the left sidebar, click **Pages**
+1. Still in **Settings**
+2. Click **Pages** in the left sidebar
 3. Under **Build and deployment**:
-   - **Source**: Select **GitHub Actions** (recommended)
-4. GitHub will automatically configure the rest
+   - **Source**: Select **GitHub Actions**
 
 ### Step 5: Trigger First Build
 
-1. Click on the **Actions** tab in your repository
-2. You may see a message about workflows needing permission - click **I understand my workflows, go ahead and enable them**
-3. Click on the **Deploy to GitHub Pages** workflow
-4. Click **Run workflow** dropdown → **Run workflow**
-5. Wait ~1 minute for the deployment to complete
-6. When you see a green checkmark ✓, your card is ready!
+1. Click **Actions** tab
+2. Enable workflows if prompted
+3. Click **Deploy to GitHub Pages** workflow
+4. Click **Run workflow** → **Run workflow**
+5. Wait ~1 minute for deployment
 
 ### Step 6: Access Your Card
 
-Your stats card will be available at:
+Your card will be available at:
 ```
 https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/card.svg
 ```
 
-Replace `YOUR_USERNAME` with your GitHub username and `YOUR_REPO_NAME` with your repository name (usually `mangabaka-stats-card`).
+---
 
-## Usage Examples
-
-### GitHub Profile README
-
-Add this to your profile's `README.md`:
-
-```markdown
-![MangaBaka Stats](https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/card.svg)
-```
-
-### AniList Bio
-
-```markdown
-![MangaBaka Stats](https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/card.svg)
-```
-
-### Website or Forum
-
-```html
-<img src="https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/card.svg" alt="MangaBaka Stats" />
-```
-
-### Discord (in embeds or bots that support images)
-
-```
-https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/card.svg
-```
-
-### Markdown Links
-
-```markdown
-[![MangaBaka Stats](https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/card.svg)](https://mangabaka.org/u/YOUR_USERNAME)
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 mangabaka-stats-card/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml      # GitHub Actions workflow for auto-deployment
-├── build.js                # Build script that fetches data and generates SVG
+│       └── deploy.yml          # GitHub Actions workflow (Python)
+├── src/
+│   ├── __init__.py             # Makes src a Python package
+│   ├── api_client.py           # MangaBaka API communication
+│   ├── stats_processor.py      # Statistics computation
+│   └── svg_generator.py        # SVG card generation
 ├── dist/
-│   └── card.svg            # Generated stats card (output directory)
-├── card.svg                # Generated stats card (also copied to root)
-├── package.json            # Project configuration
-├── .gitignore              # Git ignore rules
-├── .nojekyll               # Prevents Jekyll processing on GitHub Pages
-└── README.md               # This file
+│   └── card.svg                # Generated card (output)
+├── main.py                     # Main entry point
+├── requirements.txt            # Python dependencies
+├── .python-version             # Python version specification
+├── .gitignore                  # Git ignore rules (Python-focused)
+├── .nojekyll                   # Disable Jekyll processing
+└── README.md                   # This file
 ```
 
-## How It Works
+### Architecture Explanation
 
-1. **GitHub Actions** runs the deployment workflow:
-   - On every push to the `main` branch
-   - Daily at midnight UTC (configurable)
-   - Manually via the Actions tab
+**Why this structure?**
 
-2. The **build script** (`build.js`) executes:
-   - Fetches your profile information from MangaBaka API
-   - Retrieves all your library entries (up to 1000)
-   - Computes statistics (totals, averages, distributions)
-   - Generates a beautiful SVG card with your data
+1. **`src/` directory**: Contains all source code modules
+   - Separates library code from scripts
+   - Makes imports cleaner (`from src.api_client import ...`)
+   - Follows Python packaging conventions
 
-3. The generated card is deployed to **GitHub Pages** for public access
+2. **`api_client.py`**: Handles all HTTP communication
+   - Single Responsibility Principle
+   - Easy to mock for testing
+   - Centralized error handling
 
-4. Your card URL can be embedded anywhere that supports images
+3. **`stats_processor.py`**: Pure data processing
+   - No side effects (doesn't write files or make network calls)
+   - Easy to unit test
+   - Reusable logic
 
-## Customization
+4. **`svg_generator.py`**: Presentation layer
+   - Separated from data processing
+   - Easy to customize design without touching logic
 
-### Change Update Frequency
+5. **`main.py`**: Orchestration only
+   - Thin wrapper that connects components
+   - Handles environment setup and error reporting
 
-Edit `.github/workflows/deploy.yml` to modify the cron schedule:
+---
 
-```yaml
-schedule:
-  # Run daily at 00:00 UTC (default)
-  - cron: '0 0 * * *'
-  
-  # Run every 6 hours (uncomment to use)
-  # - cron: '0 */6 * * *'
-  
-  # Run weekly on Sundays at midnight (uncomment to use)
-  # - cron: '0 0 * * 0'
-```
+## 🔧 Local Development
 
-Cron syntax: `minute hour day month weekday`
+### Prerequisites
 
-### Modify Card Design
+- Python 3.11 or higher
+- pip (Python package manager)
 
-Edit the `generateSVG()` function in `build.js` to customize:
-
-- **Colors**: Change gradient stops, bar colors, text colors
-- **Layout**: Adjust positioning, sizes, spacing
-- **Typography**: Modify font sizes, weights, families
-- **Content**: Add new statistics, remove existing ones
-- **Effects**: Adjust glow, opacity, shadows
-
-Example color change:
-```javascript
-// Find this line in build.js
-const colors = ['#FF6B9D', '#C44569', '#F8B500', '#4ECDC4', '#556270'];
-// Replace with your preferred colors
-const colors = ['#yourColor1', '#yourColor2', ...];
-```
-
-### Increase Entry Limit
-
-By default, the script fetches up to 1000 entries (10 pages × 100 per page). To increase:
-
-Edit `build.js`, line 36:
-```javascript
-if (page > 10) break; // Change 10 to a higher number
-```
-
-⚠️ **Warning**: Higher limits may cause longer build times or API rate limiting.
-
-## Troubleshooting
-
-### Build Fails with "MANGABAKA_API_KEY environment variable is not set"
-
-**Solution:**
-- Verify you added the secret correctly
-- Go to **Settings** → **Secrets and variables** → **Actions**
-- Ensure the secret name is exactly `MANGABAKA_API_KEY` (case-sensitive)
-- Check that the value doesn't have extra spaces
-
-### API Returns 401 Unauthorized
-
-**Causes:**
-- Invalid or expired API key
-- API key doesn't have proper permissions
-
-**Solution:**
-1. Go to MangaBaka → Account Settings → API
-2. Generate a new API key
-3. Update the GitHub secret with the new key
-4. Re-run the workflow
-
-### Card Shows Empty or Zero Values
-
-**Possible causes:**
-- Your MangaBaka library is empty
-- API key has incorrect permissions
-- Network issue during build
-
-**Solution:**
-1. Verify your library has entries on MangaBaka
-2. Check GitHub Actions logs for specific errors
-3. Try regenerating your API key
-
-### GitHub Pages Not Updating
-
-**Solutions:**
-1. Check **Actions** tab for workflow status
-2. Look for red X (failed) or yellow circle (running)
-3. Click on the failed workflow to see error details
-4. Clear browser cache: `Ctrl+F5` (Windows) or `Cmd+Shift+R` (Mac)
-5. Wait a few minutes for GitHub Pages to propagate
-
-### Workflow Doesn't Run Automatically
-
-**Solution:**
-1. Go to **Settings** → **Actions** → **General**
-2. Under **Workflow permissions**, select **Read and write permissions**
-3. Save changes
-4. Manually trigger a workflow run
-
-### Rate Limiting Issues
-
-If you hit MangaBaka API rate limits:
-
-1. Reduce update frequency in `deploy.yml`
-2. Decrease the page limit in `build.js`
-3. Contact MangaBaka support for higher limits
-
-## Manual Build (Local Testing)
-
-Test the card generation locally before pushing:
+### Setup
 
 ```bash
 # Clone your repository
 git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
 cd YOUR_REPO_NAME
 
-# Set your API key as environment variable
+# Create virtual environment (recommended)
+python -m venv venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set your API key
 export MANGABAKA_API_KEY="your-api-key-here"
+# On Windows (PowerShell):
+$env:MANGABAKA_API_KEY="your-api-key-here"
 
-# Run the build
-npm run build
+# Run the script
+python main.py
 
-# The card.svg file will be generated
-# Open it in a browser to preview
+# View the generated card
 open card.svg  # macOS
 xdg-open card.svg  # Linux
 start card.svg  # Windows
 ```
 
-## Privacy Notes
+### Running Tests (Future Enhancement)
 
-- Your API key is stored securely as a GitHub secret
-- The key is only used during the build process
-- The generated SVG contains only public statistics
-- No sensitive data is exposed in the card
-- GitHub Actions logs are visible only to repository collaborators
+```bash
+# Install pytest for testing
+pip install pytest
 
-## API Reference
-
-### MangaBaka Endpoints Used
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/v1/my/profile` | GET | Fetch user profile (nickname, avatar, etc.) |
-| `/v1/my/library` | GET | Fetch library entries (paginated, 100 per page) |
-
-### Required Headers
-
-```http
-x-api-key: YOUR_API_KEY
+# Run tests
+pytest
 ```
 
-### Response Format
+---
 
-The build script handles pagination automatically and aggregates all entries.
+## 🎨 Customization
 
-## Contributing
+### Change Colors
 
-Feel free to:
-- Fork and customize the card design
-- Submit pull requests with improvements
-- Report bugs or suggest features
-- Share your customized versions
+Edit `src/svg_generator.py`:
 
-## License
+```python
+# Color palette for genre bars
+colors: list[str] = ['#FF6B9D', '#C44569', '#F8B500', '#4ECDC4', '#556270']
+# Replace with your colors:
+colors = ['#yourColor1', '#yourColor2', ...]
+```
 
-MIT License - Feel free to modify, distribute, and use in your projects!
+### Modify Card Dimensions
 
-## Support
+In `src/svg_generator.py`:
 
-If you encounter issues:
+```python
+def generate_svg(stats: LibraryStats, nickname: str) -> str:
+    width = 850  # Change width
+    height = 420  # Change height
+    ...
+```
 
-1. **Check the logs**: Go to **Actions** tab → Click on workflow → Review output
-2. **Review troubleshooting**: See the [Troubleshooting](#troubleshooting) section above
-3. **Verify API key**: Ensure your MangaBaka API key is valid and active
-4. **Open an issue**: Create a new issue on this repository with details
+### Adjust Update Frequency
 
-## Credits
+Edit `.github/workflows/deploy.yml`:
+
+```yaml
+schedule:
+  # Daily at midnight UTC (default)
+  - cron: '0 0 * * *'
+  
+  # Every 6 hours
+  # - cron: '0 */6 * * *'
+  
+  # Weekly on Sundays
+  # - cron: '0 0 * * 0'
+```
+
+### Increase Entry Limit
+
+In `main.py`, modify the `max_pages` parameter:
+
+```python
+entries = client.fetch_all_library_entries(max_pages=10)  # 10 pages = 1000 entries
+```
+
+⚠️ **Warning**: Higher limits may cause longer build times or API rate limiting.
+
+---
+
+## 🐛 Troubleshooting
+
+### "MANGABAKA_API_KEY environment variable is not set"
+
+**Solution:**
+1. Verify the secret is added correctly
+2. Check spelling: must be exactly `MANGABAKA_API_KEY`
+3. Ensure no extra spaces in the value
+4. Re-run the workflow after adding the secret
+
+### "Authentication failed (401)"
+
+**Causes:**
+- Invalid API key
+- Expired API key
+
+**Solution:**
+1. Regenerate API key on MangaBaka
+2. Update the GitHub secret
+3. Re-run workflow
+
+### "Request timed out"
+
+**Possible causes:**
+- Network issues
+- MangaBaka API slow/down
+
+**Solution:**
+1. Wait and retry
+2. Check MangaBaka status
+3. Reduce `max_pages` if you have many entries
+
+### Workflow Fails Silently
+
+**Debug steps:**
+1. Go to **Actions** tab
+2. Click the failed workflow run
+3. Expand the log output
+4. Look for error messages
+
+### Card Shows Default Name "User"
+
+**Cause:** Profile fetch failed (non-critical error)
+
+**Solution:**
+1. Check workflow logs for warnings
+2. Verify API key permissions
+3. The card still works with default name
+
+---
+
+## 📖 Python Best Practices Demonstrated
+
+### 1. **PEP 8 Style Guide**
+
+- 4-space indentation
+- Snake_case for functions/variables
+- CamelCase for classes
+- Maximum line length: 88 characters (Black formatter standard)
+
+### 2. **Docstrings**
+
+Every function has a docstring explaining:
+- Purpose
+- Parameters
+- Return values
+- Exceptions raised
+
+```python
+def compute_statistics(entries: list[dict[str, Any]]) -> LibraryStats:
+    """
+    Compute all statistics from library entries.
+    
+    Args:
+        entries: List of library entry dictionaries
+        
+    Returns:
+        LibraryStats object with computed values
+    """
+```
+
+### 3. **Error Handling Hierarchy**
+
+```python
+# Specific exceptions first
+except MangaBakaAPIError as e:
+    ...
+except IOError as e:
+    ...
+# General catch-all last
+except Exception as e:
+    ...
+```
+
+### 4. **Type Safety**
+
+```python
+# Explicit types for clarity
+def _safe_get(dictionary: dict[str, Any], key: str, default: Any = None) -> Any:
+    ...
+```
+
+### 5. **DRY Principle**
+
+Reusable helper functions instead of repeated code:
+
+```python
+# Instead of repeating bar generation 5 times:
+_generate_status_bar_row("Reading", stats.reading, max_state, "#4ECDC4", 15)
+_generate_status_bar_row("Completed", stats.completed, max_state, "#A8E6CF", 35)
+```
+
+---
+
+## 🔒 Security Notes
+
+- **API keys are never committed** - stored as GitHub Secrets
+- **Keys only used during build** - not exposed in generated SVG
+- **HTTPS only** - all API calls use encrypted connections
+- **Input sanitization** - XML escaping prevents injection attacks
+
+---
+
+## 📊 Performance Considerations
+
+| Aspect | Implementation |
+|--------|---------------|
+| **HTTP** | Session reuse for connection pooling |
+| **Pagination** | Automatic handling with max limit |
+| **Memory** | Efficient data structures (dicts, lists) |
+| **Dependencies** | Minimal (only `requests`) |
+| **Build Time** | ~30-60 seconds typically |
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Areas for improvement:
+
+- [ ] Add unit tests
+- [ ] Add more stat visualizations
+- [ ] Support custom themes
+- [ ] Add caching to reduce API calls
+- [ ] Support multiple card sizes
+
+---
+
+## 📄 License
+
+MIT License - Feel free to modify and distribute!
+
+---
+
+## 🙏 Credits
 
 - Built for the MangaBaka community
 - Inspired by GitHub Stats Card projects
-- Made with ❤️ by manga readers, for manga readers
+- Made with ❤️ using modern Python
+
+---
+
+## 📚 Further Learning Resources
+
+### Python Basics
+- [Official Python Tutorial](https://docs.python.org/3/tutorial/)
+- [Real Python](https://realpython.com/)
+
+### Type Hints
+- [PEP 484 - Type Hints](https://peps.python.org/pep-0484/)
+- [mypy Documentation](https://mypy.readthedocs.io/)
+
+### Best Practices
+- [The Hitchhiker's Guide to Python](https://docs.python-guide.org/)
+- [Python Packaging User Guide](https://packaging.python.org/)
+
+### GitHub Actions
+- [GitHub Actions Documentation](https://docs.github.com/actions)
 
 ---
 
 **マンガバカ (MangaBaka)** - Your manga tracking companion
 
-*Last updated: $(date)*
+*Last updated: January 2025*
