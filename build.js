@@ -140,16 +140,6 @@ function generateSVG(stats, nickname) {
     `;
   }).join('');
 
-  const tagBars = stats.topTags.map(([name, count], i) => {
-    const maxT = stats.topTags[0][1];
-    const pct = (count / maxT) * 120;
-    const colors = ['#A8E6CF', '#DCEDC1', '#FFD3B6', '#FFAAA5', '#FF8B94'];
-    return `
-      <text x="0" y="${i * 18}" fill="#a0a0b0" font-size="11" font-family="system-ui, sans-serif">${escapeXml(name.length > 18 ? name.slice(0, 18) + '...' : name)}</text>
-      <rect x="100" y="${i * 18 - 8}" width="${pct}" height="6" rx="3" fill="${colors[i % colors.length]}" opacity="0.85"/>
-      <text x="${105 + pct}" y="${i * 18}" fill="#d0d0e0" font-size="10" font-family="system-ui, sans-serif">${count}</text>
-    `;
-  }).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
